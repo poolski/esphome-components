@@ -3,7 +3,7 @@ import esphome.config_validation as cv
 from esphome.components import binary_sensor, sensor, text_sensor, uart
 from esphome.const import CONF_ID, DEVICE_CLASS_DISTANCE, DEVICE_CLASS_MOTION
 
-CODEOWNERS = ["@kyrill"]
+CODEOWNERS = ["@poolski"]
 DEPENDENCIES = ["uart"]
 AUTO_LOAD = ["sensor", "binary_sensor", "text_sensor"]
 MULTI_CONF = True
