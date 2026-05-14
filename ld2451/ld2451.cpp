@@ -10,27 +10,8 @@ static const char *const TAG = "ld2451";
 
 static const uint8_t DATA_HEADER[] = {0xF4, 0xF3, 0xF2, 0xF1};
 static const uint8_t DATA_TAIL[] = {0xF8, 0xF7, 0xF6, 0xF5};
-static const uint8_t CMD_HEADER[] = {0xFD, 0xFC, 0xFB, 0xFA};
-static const uint8_t CMD_TAIL[] = {0x04, 0x03, 0x02, 0x01};
 
-static const uint8_t CMD_ENTER_CONFIG = 0xFF;
-static const uint8_t CMD_EXIT_CONFIG = 0xFE;
-static const uint8_t CMD_SET_BLUETOOTH = 0xA4;
-
-void LD2451Component::setup() {
-  this->rx_buffer_.reserve(256);
-
-  if (this->disable_bluetooth_on_boot_) {
-    const bool ok = this->set_bluetooth_enabled(false);
-    if (!ok) {
-      ESP_LOGW(TAG, "Failed to disable bluetooth on boot");
-    }
-  }
-
-  if (this->bluetooth_switch_ != nullptr) {
-    this->bluetooth_switch_->publish_state(this->bluetooth_enabled_state_);
-  }
-}
+void LD2451Component::setup() { this->rx_buffer_.reserve(256); }
 
 void LD2451Component::loop() {
   while (this->available()) {
@@ -53,122 +34,6 @@ void LD2451Component::dump_config() {
 }
 
 float LD2451Component::get_setup_priority() const { return setup_priority::DATA; }
-
-bool LD2451Component::send_command_frame_(uint8_t cmd, const uint8_t *payload, size_t payload_len) {
-  const uint16_t body_len = static_cast<uint16_t>(payload_len + 2);
-  this->write_array(CMD_HEADER, sizeof(CMD_HEADER));
-  this->write_byte(static_cast<uint8_t>(body_len & 0xFF));
-  this->write_byte(static_cast<uint8_t>((body_len >> 8) & 0xFF));
-  this->write_byte(cmd);
-  this->write_byte(0x00);
-  if (payload != nullptr && payload_len > 0) {
-    this->write_array(payload, payload_len);
-  }
-  this->write_array(CMD_TAIL, sizeof(CMD_TAIL));
-  this->flush();
-  return true;
-}
-
-bool LD2451Component::read_ack_frame_(uint8_t expected_cmd, uint16_t timeout_ms) {
-  std::vector<uint8_t> ack_buf;
-  ack_buf.reserve(64);
-  const uint32_t start = millis();
-
-  while (millis() - start < timeout_ms) {
-    while (this->available()) {
-      ack_buf.push_back(this->read());
-    }
-
-    while (ack_buf.size() >= 10) {
-      size_t header_pos = ack_buf.size();
-      for (size_t i = 0; i + sizeof(CMD_HEADER) <= ack_buf.size(); i++) {
-        if (ack_buf[i] == CMD_HEADER[0] && ack_buf[i + 1] == CMD_HEADER[1] && ack_buf[i + 2] == CMD_HEADER[2] &&
-            ack_buf[i + 3] == CMD_HEADER[3]) {
-          header_pos = i;
-          break;
-        }
-      }
-
-      if (header_pos == ack_buf.size()) {
-        if (ack_buf.size() > 3) {
-          ack_buf.erase(ack_buf.begin(), ack_buf.end() - 3);
-        }
-        break;
-      }
-
-      if (header_pos > 0) {
-        ack_buf.erase(ack_buf.begin(), ack_buf.begin() + static_cast<long>(header_pos));
-      }
-
-      if (ack_buf.size() < 10) {
-        break;
-      }
-
-      const uint16_t payload_len = static_cast<uint16_t>(ack_buf[4]) | (static_cast<uint16_t>(ack_buf[5]) << 8);
-      const size_t frame_len = static_cast<size_t>(payload_len) + 10;
-      if (ack_buf.size() < frame_len) {
-        break;
-      }
-
-      const size_t tail_pos = frame_len - 4;
-      if (ack_buf[tail_pos] != CMD_TAIL[0] || ack_buf[tail_pos + 1] != CMD_TAIL[1] || ack_buf[tail_pos + 2] != CMD_TAIL[2] ||
-          ack_buf[tail_pos + 3] != CMD_TAIL[3]) {
-        ack_buf.erase(ack_buf.begin());
-        continue;
-      }
-
-      if (payload_len >= 4 && ack_buf[6] == expected_cmd && ack_buf[7] == 0x01 && ack_buf[8] == 0x00 && ack_buf[9] == 0x00) {
-        return true;
-      }
-
-      ESP_LOGW(TAG, "Unexpected ACK payload for cmd 0x%02X", expected_cmd);
-      return false;
-    }
-
-    delay(1);
-  }
-
-  ESP_LOGW(TAG, "Timeout waiting for ACK cmd 0x%02X", expected_cmd);
-  return false;
-}
-
-bool LD2451Component::enter_config_() {
-  const uint8_t payload[2] = {0x01, 0x00};
-  return this->send_command_frame_(CMD_ENTER_CONFIG, payload, sizeof(payload)) && this->read_ack_frame_(CMD_ENTER_CONFIG, 500);
-}
-
-bool LD2451Component::exit_config_() {
-  return this->send_command_frame_(CMD_EXIT_CONFIG, nullptr, 0) && this->read_ack_frame_(CMD_EXIT_CONFIG, 500);
-}
-
-bool LD2451Component::set_bluetooth_enabled_internal_(bool enabled) {
-  const uint8_t payload[2] = {static_cast<uint8_t>(enabled ? 0x01 : 0x00), 0x00};
-  if (!this->enter_config_()) {
-    return false;
-  }
-
-  const bool ack = this->send_command_frame_(CMD_SET_BLUETOOTH, payload, sizeof(payload)) && this->read_ack_frame_(CMD_SET_BLUETOOTH, 500);
-  const bool exited = this->exit_config_();
-  return ack && exited;
-}
-
-bool LD2451Component::set_bluetooth_enabled(bool enabled) {
-  const bool ok = this->set_bluetooth_enabled_internal_(enabled);
-  if (ok) {
-    this->bluetooth_enabled_state_ = enabled;
-  }
-  return ok;
-}
-
-void LD2451BluetoothSwitch::write_state(bool state) {
-  if (this->parent_ == nullptr) {
-    this->publish_state(!state);
-    return;
-  }
-
-  const bool ok = this->parent_->set_bluetooth_enabled(state);
-  this->publish_state(ok ? state : !state);
-}
 
 bool LD2451Component::extract_frame_() {
   if (this->rx_buffer_.size() < 10) {

@@ -33,9 +33,6 @@ uart:
 ld2451:
   id: radar
   uart_id: uart_bus
-  disable_bluetooth_on_boot: true
-  bluetooth_enabled:
-    name: "LD2451 Bluetooth Enabled"
   target_count:
     name: "LD2451 Target Count"
   alarm:
