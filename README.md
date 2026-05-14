@@ -13,13 +13,18 @@ Reference this repository from your ESPHome config:
 ```yaml
 external_components:
   - source: github://poolski/esphome-components@main
+    refresh: 1d
 ```
+
+`refresh` controls how often ESPHome checks the remote source for updates.
+Use shorter values while actively iterating, and longer values for stable deployments.
 
 By default, ESPHome loads all components from that source. You can optionally limit to a subset:
 
 ```yaml
 external_components:
   - source: github://poolski/esphome-components@main
+    refresh: 1d
     components: [ld2451]
 ```
 

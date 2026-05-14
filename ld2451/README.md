@@ -26,8 +26,12 @@ Add this component from GitHub in your ESPHome YAML.
 ```yaml
 external_components:
   - source: github://poolski/esphome-components@main
+    refresh: 1d
     components: [ld2451]
 ```
+
+`refresh` sets how often ESPHome refreshes the GitHub source cache. `1d` is a good default.
+Use a shorter value while developing and a longer value if you want fewer update checks.
 
 ## Minimal Example
 
@@ -49,6 +53,7 @@ wifi:
 
 external_components:
   - source: github://poolski/esphome-components@main
+    refresh: 1d
     components: [ld2451]
 
 uart:
