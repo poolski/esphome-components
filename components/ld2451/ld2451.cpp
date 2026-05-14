@@ -14,8 +14,19 @@ static const uint8_t DATA_TAIL[] = {0xF8, 0xF7, 0xF6, 0xF5};
 void LD2451Component::setup() { this->rx_buffer_.reserve(256); }
 
 void LD2451Component::loop() {
+  size_t bytes_read = 0;
   while (this->available()) {
     this->rx_buffer_.push_back(this->read());
+    bytes_read++;
+  }
+
+  if (bytes_read > 0) {
+    const uint32_t now = millis();
+    if (now - this->last_rx_activity_log_ms_ > 5000) {
+      ESP_LOGD(TAG, "RX activity: read=%u bytes, buffered=%u bytes", static_cast<unsigned int>(bytes_read),
+               static_cast<unsigned int>(this->rx_buffer_.size()));
+      this->last_rx_activity_log_ms_ = now;
+    }
   }
 
   while (this->extract_frame_()) {
@@ -80,6 +91,17 @@ bool LD2451Component::extract_frame_() {
   std::vector<uint8_t> payload;
   payload.reserve(payload_len);
   payload.insert(payload.end(), this->rx_buffer_.begin() + 6, this->rx_buffer_.begin() + 6 + payload_len);
+
+  if (payload_len < 2) {
+    this->short_payload_frames_++;
+    const uint32_t now = millis();
+    if (now - this->last_empty_hint_ms_ > 5000) {
+      ESP_LOGD(TAG, "Frame %u has short payload len=%u (short frames=%u)",
+               static_cast<unsigned int>(this->parsed_frames_ + 1), static_cast<unsigned int>(payload_len),
+               static_cast<unsigned int>(this->short_payload_frames_));
+      this->last_empty_hint_ms_ = now;
+    }
+  }
 
   uint8_t target_count = 0;
   bool alarm = false;
