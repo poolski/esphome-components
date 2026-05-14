@@ -4,7 +4,7 @@ Custom ESPHome external components maintained in this repository.
 
 ## Components
 
-- `ld2451` - HLK-LD2451 UART radar component
+- [`ld2451`](ld2451/README.md) - HLK-LD2451 UART radar component
 
 ## Install and Use
 
@@ -13,47 +13,26 @@ Reference this repository from your ESPHome config:
 ```yaml
 external_components:
   - source: github://poolski/esphome-components@main
+```
+
+By default, ESPHome loads all components from that source. You can optionally limit to a subset:
+
+```yaml
+external_components:
+  - source: github://poolski/esphome-components@main
     components: [ld2451]
 ```
 
-Then add the component block (minimal example):
+Then configure whichever component(s) you want to use. Each component has its own README with full YAML examples.
 
-```yaml
-uart:
-  id: uart_bus
-  tx_pin: GPIO17
-  rx_pin: GPIO16
-  baud_rate: 115200
+## LD2451
 
-ld2451:
-  id: radar
-  uart_id: uart_bus
-  target_count:
-    name: "LD2451 Target Count"
-  alarm:
-    name: "LD2451 Alarm"
-  angle:
-    name: "LD2451 Angle"
-  distance:
-    name: "LD2451 Distance"
-  speed:
-    name: "LD2451 Speed"
-  snr:
-    name: "LD2451 SNR"
-  direction:
-    name: "LD2451 Direction"
-```
+See [`ld2451/README.md`](ld2451/README.md) for setup, configuration, debugging, and troubleshooting details.
 
-## `ld2451` README Summary
-
-`ld2451/README.md` covers:
-
-- parsed LD2451 frame format and exposed entities
-- verified direction mapping (`0x01` approaching, `0x00` moving away)
-- complete YAML example, including debug logging
-- troubleshooting guidance when no detections appear
-- movement guidance for bench testing (larger toward-sensor motion may be required)
-- per-component local validation command
+- HLK-LD2451 live frame parsing over UART (115200)
+- entities for target count, alarm, angle, distance, speed, SNR, and direction
+- debug logging guidance and movement-based bench test advice
+- per-component validation command and troubleshooting notes
 
 ## Development and Testing
 

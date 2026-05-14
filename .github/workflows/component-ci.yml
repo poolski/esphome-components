@@ -20,7 +20,7 @@ jobs:
           if [ "${#components[@]}" -eq 0 ]; then
             echo 'components=[]' >> "$GITHUB_OUTPUT"
           else
-            json=$(printf '%s\n' "${components[@]}" | jq -R . | jq -s .)
+            json=$(printf '%s\n' "${components[@]}" | jq -R . | jq -cs .)
             echo "components=${json}" >> "$GITHUB_OUTPUT"
           fi
 
