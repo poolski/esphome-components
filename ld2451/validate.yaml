@@ -1,0 +1,49 @@
+esphome:
+  name: ld2451-validate
+  friendly_name: LD2451 Validate
+
+esp32:
+  board: esp32dev
+  framework:
+    type: arduino
+
+logger:
+
+api:
+
+ota:
+  platform: esphome
+
+wifi:
+  ssid: "test"
+  password: "testtest"
+
+external_components:
+  - source:
+      type: local
+      path: /Users/kyrill/Dev/personal/esphome-components
+    components: [ld2451]
+
+uart:
+  id: uart_bus
+  tx_pin: GPIO17
+  rx_pin: GPIO16
+  baud_rate: 115200
+
+ld2451:
+  id: radar
+  uart_id: uart_bus
+  target_count:
+    name: "LD2451 Target Count"
+  alarm:
+    name: "LD2451 Alarm"
+  angle:
+    name: "LD2451 Angle"
+  distance:
+    name: "LD2451 Distance"
+  speed:
+    name: "LD2451 Speed"
+  snr:
+    name: "LD2451 SNR"
+  direction:
+    name: "LD2451 Direction"
