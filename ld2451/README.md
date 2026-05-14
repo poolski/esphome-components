@@ -130,3 +130,14 @@ trigger frames, especially with restrictive sensor-side settings.
 3. Use deliberate movement for bench validation before installation
    - move directly toward sensor with larger motion (walk/run toward it)
    - if needed, test with broad hand/body movement at close range
+
+## Component CI
+
+This repository is intended to host multiple components. CI runs tests per component directory
+(not as one monolithic repo check).
+
+Local test command for this component:
+
+```bash
+../scripts/test-component.sh ld2451
+```

@@ -1,0 +1,48 @@
+name: Component CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  discover:
+    runs-on: ubuntu-latest
+    outputs:
+      components: ${{ steps.set-matrix.outputs.components }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: set-matrix
+        shell: bash
+        run: |
+          mapfile -t components < <(find . -mindepth 1 -maxdepth 1 -type d ! -name '.git' ! -name '.github' ! -name 'scripts' -exec test -f '{}/validate.yaml' ';' -print | sed 's|^./||' | sort)
+          if [ "${#components[@]}" -eq 0 ]; then
+            echo 'components=[]' >> "$GITHUB_OUTPUT"
+          else
+            json=$(printf '%s\n' "${components[@]}" | jq -R . | jq -s .)
+            echo "components=${json}" >> "$GITHUB_OUTPUT"
+          fi
+
+  test-component:
+    needs: discover
+    if: ${{ needs.discover.outputs.components != '[]' }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        component: ${{ fromJson(needs.discover.outputs.components) }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install ESPHome
+        run: pip install esphome
+
+      - name: Test component
+        run: ./scripts/test-component.sh "${{ matrix.component }}"
