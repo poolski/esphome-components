@@ -1,6 +1,5 @@
 esphome:
-  name: ld2451-validate
-  friendly_name: LD2451 Validate
+  name: ld2451-validate-bluetooth
 
 esp32:
   board: esp32dev
@@ -36,17 +35,3 @@ ld2451:
   disable_bluetooth_on_boot: true
   bluetooth_enabled:
     name: "LD2451 Bluetooth Enabled"
-  target_count:
-    name: "LD2451 Target Count"
-  alarm:
-    name: "LD2451 Alarm"
-  angle:
-    name: "LD2451 Angle"
-  distance:
-    name: "LD2451 Distance"
-  speed:
-    name: "LD2451 Speed"
-  snr:
-    name: "LD2451 SNR"
-  direction:
-    name: "LD2451 Direction"

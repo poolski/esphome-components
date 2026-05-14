@@ -89,11 +89,35 @@ ld2451:
 - `speed` (optional `sensor`)
 - `snr` (optional `sensor`)
 - `direction` (optional `text_sensor`)
+- `bluetooth_enabled` (optional `switch`) runtime BLE control (`ON` enables BLE, `OFF` disables BLE)
+- `disable_bluetooth_on_boot` (optional `bool`, default `false`) sends BLE-disable command during setup
 
 UART validation is enforced for:
 
 - baud rate `115200`
 - RX pin required
+
+### Bluetooth Runtime Control
+
+You can toggle module Bluetooth at runtime and optionally disable it on boot.
+
+```yaml
+ld2451:
+  id: radar
+  uart_id: uart_bus
+  disable_bluetooth_on_boot: true
+  bluetooth_enabled:
+    name: "LD2451 Bluetooth Enabled"
+```
+
+Behavior:
+
+- switch `OFF`: sends command `0xA4` with payload `00 00`
+- switch `ON`: sends command `0xA4` with payload `01 00`
+- command sequence is wrapped by config enter/exit commands (`0xFF` / `0xFE`)
+
+Note: command `0xA4` is field-validated but not listed in published LD2451 serial protocol command tables;
+behavior may vary by module firmware.
 
 ## Notes
 

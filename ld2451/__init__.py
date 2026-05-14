@@ -1,11 +1,11 @@
 import esphome.codegen as cg
 import esphome.config_validation as cv
-from esphome.components import binary_sensor, sensor, text_sensor, uart
+from esphome.components import binary_sensor, sensor, switch, text_sensor, uart
 from esphome.const import CONF_ID, DEVICE_CLASS_DISTANCE, DEVICE_CLASS_MOTION
 
-CODEOWNERS = ["@kyrill"]
+CODEOWNERS = ["@poolski"]
 DEPENDENCIES = ["uart"]
-AUTO_LOAD = ["sensor", "binary_sensor", "text_sensor"]
+AUTO_LOAD = ["sensor", "binary_sensor", "text_sensor", "switch"]
 MULTI_CONF = True
 
 CONF_TARGET_COUNT = "target_count"
@@ -15,9 +15,12 @@ CONF_DISTANCE = "distance"
 CONF_SPEED = "speed"
 CONF_SNR = "snr"
 CONF_DIRECTION = "direction"
+CONF_BLUETOOTH_ENABLED = "bluetooth_enabled"
+CONF_DISABLE_BLUETOOTH_ON_BOOT = "disable_bluetooth_on_boot"
 
 ld2451_ns = cg.esphome_ns.namespace("ld2451")
 LD2451Component = ld2451_ns.class_("LD2451Component", cg.Component, uart.UARTDevice)
+LD2451BluetoothSwitch = ld2451_ns.class_("LD2451BluetoothSwitch", switch.Switch)
 cg.add_global(ld2451_ns.using)
 
 CONFIG_SCHEMA = (
@@ -57,6 +60,11 @@ CONFIG_SCHEMA = (
             cv.Optional(CONF_DIRECTION): text_sensor.text_sensor_schema(
                 icon="mdi:sign-direction",
             ),
+            cv.Optional(CONF_BLUETOOTH_ENABLED): switch.switch_schema(
+                LD2451BluetoothSwitch,
+                icon="mdi:bluetooth",
+            ),
+            cv.Optional(CONF_DISABLE_BLUETOOTH_ON_BOOT, default=False): cv.boolean,
         }
     )
     .extend(uart.UART_DEVICE_SCHEMA)
@@ -97,3 +105,12 @@ async def to_code(config):
     if CONF_DIRECTION in config:
         ts = await text_sensor.new_text_sensor(config[CONF_DIRECTION])
         cg.add(var.set_direction_text_sensor(ts))
+
+    cg.add(var.set_disable_bluetooth_on_boot(config[CONF_DISABLE_BLUETOOTH_ON_BOOT]))
+
+    if CONF_BLUETOOTH_ENABLED in config:
+        sw_conf = config[CONF_BLUETOOTH_ENABLED]
+        sw = cg.new_Pvariable(sw_conf[CONF_ID])
+        await switch.register_switch(sw, sw_conf)
+        cg.add(sw.set_parent(var))
+        cg.add(var.set_bluetooth_switch(sw))
