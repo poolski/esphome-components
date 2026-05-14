@@ -25,13 +25,27 @@ Add this component from GitHub in your ESPHome YAML.
 
 ```yaml
 external_components:
-  - source: github://poolski/esphome-components@main
+  - source:
+      type: git
+      url: https://github.com/poolski/esphome-components
+      ref: main
+    path: components
     refresh: 1d
     components: [ld2451]
 ```
 
 `refresh` sets how often ESPHome refreshes the GitHub source cache. `1d` is a good default.
 Use a shorter value while developing and a longer value if you want fewer update checks.
+
+Equivalent shorthand:
+
+```yaml
+external_components:
+  - source: github://poolski/esphome-components@main
+    path: components
+    refresh: 1d
+    components: [ld2451]
+```
 
 ## Minimal Example
 
@@ -52,7 +66,11 @@ wifi:
   password: !secret wifi_password
 
 external_components:
-  - source: github://poolski/esphome-components@main
+  - source:
+      type: git
+      url: https://github.com/poolski/esphome-components
+      ref: main
+    path: components
     refresh: 1d
     components: [ld2451]
 
@@ -144,5 +162,5 @@ This repository is intended to host multiple components. CI runs tests per compo
 Local test command for this component:
 
 ```bash
-../scripts/test-component.sh ld2451
+../../scripts/test-component.sh components/ld2451
 ```

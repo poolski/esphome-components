@@ -21,7 +21,7 @@ wifi:
 external_components:
   - source:
       type: local
-      path: ..
+      path: ../../components
     components: [ld2451]
 
 uart:
