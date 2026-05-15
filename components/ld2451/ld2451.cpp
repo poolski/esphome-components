@@ -4,6 +4,7 @@
 #include <cstring>
 
 #include "ack_codec.h"
+#include "target_publisher.h"
 #include "esphome/core/log.h"
 #include "esphome/components/uart/uart.h"
 
@@ -462,13 +463,12 @@ void LD2451Component::publish_frame_(uint8_t target_count, bool alarm, const Par
     return;
   }
 
-  if (first_target.distance < this->desired_.min_distance || first_target.distance > this->desired_.max_distance) {
+  const TargetOutput output = compute_target_output(this->desired_, first_target);
+  if (!output.publish) {
     ESP_LOGD(TAG, "Target filtered by distance window: %u (window=%u..%u)", first_target.distance,
              this->desired_.min_distance, this->desired_.max_distance);
     return;
   }
-
-  const float corrected_speed = static_cast<float>(first_target.speed) * this->desired_.speed_correction;
 
   if (this->angle_sensor_ != nullptr) {
     this->angle_sensor_->publish_state(first_target.angle);
@@ -477,7 +477,7 @@ void LD2451Component::publish_frame_(uint8_t target_count, bool alarm, const Par
     this->distance_sensor_->publish_state(first_target.distance);
   }
   if (this->speed_sensor_ != nullptr) {
-    this->speed_sensor_->publish_state(corrected_speed);
+    this->speed_sensor_->publish_state(output.corrected_speed);
   }
   if (this->snr_sensor_ != nullptr) {
     this->snr_sensor_->publish_state(first_target.snr);
