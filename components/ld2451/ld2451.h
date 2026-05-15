@@ -26,7 +26,9 @@ class LD2451Component : public Component, public uart::UARTDevice {
   float get_setup_priority() const override;
 
   void set_target_count_sensor(sensor::Sensor *sensor) { this->target_count_sensor_ = sensor; }
-  void set_alarm_binary_sensor(binary_sensor::BinarySensor *sensor) { this->alarm_binary_sensor_ = sensor; }
+  void set_vehicle_detected_binary_sensor(binary_sensor::BinarySensor *sensor) {
+    this->vehicle_detected_binary_sensor_ = sensor;
+  }
   void set_angle_sensor(sensor::Sensor *sensor) { this->angle_sensor_ = sensor; }
   void set_distance_sensor(sensor::Sensor *sensor) { this->distance_sensor_ = sensor; }
   void set_speed_sensor(sensor::Sensor *sensor) { this->speed_sensor_ = sensor; }
@@ -85,12 +87,8 @@ class LD2451Component : public Component, public uart::UARTDevice {
   bool send_command_wait_ack_(uint16_t command, const std::vector<uint8_t> &value, std::vector<uint8_t> *ret = nullptr,
                               uint32_t timeout_ms = COMMAND_ACK_TIMEOUT_MS);
   bool read_exact_(uint8_t *dest, size_t len, uint32_t timeout_ms);
-  static bool parse_payload_(const std::vector<uint8_t> &payload, uint8_t &target_count, bool &alarm,
-                             ParsedTarget &first_target);
-  void publish_frame_(uint8_t target_count, bool alarm, const ParsedTarget &first_target, bool has_target);
-
-  friend bool ld2451_test_parse_payload(const std::vector<uint8_t> &payload, uint8_t &target_count, bool &alarm,
-                                        ParsedTarget &first_target);
+  static bool parse_payload_(const std::vector<uint8_t> &payload, uint8_t &target_count, ParsedTarget &first_target);
+  void publish_frame_(uint8_t target_count, const ParsedTarget &first_target, bool has_target);
 
   std::vector<uint8_t> rx_buffer_;
   uint32_t parsed_frames_{0};
@@ -107,12 +105,15 @@ class LD2451Component : public Component, public uart::UARTDevice {
   uint8_t snr_threshold_{0};
 
   sensor::Sensor *target_count_sensor_{nullptr};
-  binary_sensor::BinarySensor *alarm_binary_sensor_{nullptr};
+  binary_sensor::BinarySensor *vehicle_detected_binary_sensor_{nullptr};
   sensor::Sensor *angle_sensor_{nullptr};
   sensor::Sensor *distance_sensor_{nullptr};
   sensor::Sensor *speed_sensor_{nullptr};
   sensor::Sensor *snr_sensor_{nullptr};
   text_sensor::TextSensor *direction_text_sensor_{nullptr};
+  bool detection_active_{false};
+  bool idle_published_{false};
+  uint32_t last_detection_ms_{0};
 
   LD2451MaxDistanceNumber *max_distance_number_{nullptr};
   LD2451MinDistanceNumber *min_distance_number_{nullptr};

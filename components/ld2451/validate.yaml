@@ -43,8 +43,8 @@ ld2451:
   speed_correction: 1.10
   target_count:
     name: "LD2451 Target Count"
-  alarm:
-    name: "LD2451 Alarm"
+  vehicle_detected:
+    name: "LD2451 Vehicle Detected"
   angle:
     name: "LD2451 Angle"
   distance:

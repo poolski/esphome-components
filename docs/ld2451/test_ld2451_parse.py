@@ -21,9 +21,9 @@ class ParseDataFrameTests(unittest.TestCase):
         result = m.parse_data_frame(frame)
 
         self.assertIsNotNone(result)
-        target_count, alarm, targets = result
+        target_count, approach_flag, targets = result
         self.assertEqual(target_count, 1)
-        self.assertTrue(alarm)
+        self.assertTrue(approach_flag)
         self.assertEqual(targets[0]["raw_angle"], 0x80)
         self.assertEqual(targets[0]["raw_distance"], 2)
         self.assertEqual(targets[0]["raw_direction"], 1)
@@ -38,7 +38,17 @@ class ParseDataFrameTests(unittest.TestCase):
 
         self.assertIsNotNone(result)
         _, _, targets = result
-        self.assertEqual(targets[0]["direction"], "approaching")
+        self.assertEqual(targets[0]["direction"], "Approaching")
+
+    def test_direction_byte_zero_maps_to_moving_away(self):
+        m = load_module()
+        frame = bytes([1, 1, 0x80, 2, 0, 3, 136])
+
+        result = m.parse_data_frame(frame)
+
+        self.assertIsNotNone(result)
+        _, _, targets = result
+        self.assertEqual(targets[0]["direction"], "Moving away")
 
 
 class PortDiscoveryTests(unittest.TestCase):

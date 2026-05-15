@@ -20,5 +20,20 @@ int main() {
 
   target.distance = 20;
   assert(!compute_target_output(cfg, target).publish);
+
+  assert(direction_label(0x01) == std::string("Approaching"));
+  assert(direction_label(0x00) == std::string("Moving away"));
+
+  const IdleResetOutput reset = build_idle_reset_output();
+  assert(reset.angle == 0);
+  assert(reset.distance == 0);
+  assert(reset.speed == 0.0f);
+  assert(reset.snr == 0);
+  assert(reset.direction == std::string("None"));
+
+  assert(should_publish_idle_reset(true, false, 4000, 1000, 3));
+  assert(!should_publish_idle_reset(true, false, 3999, 1000, 3));
+  assert(!should_publish_idle_reset(false, false, 4000, 1000, 3));
+  assert(!should_publish_idle_reset(true, true, 4000, 1000, 3));
   return 0;
 }

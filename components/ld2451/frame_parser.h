@@ -10,7 +10,6 @@ namespace esphome::ld2451 {
 
 struct ParsedFrame {
   uint8_t target_count{0};
-  bool alarm{false};
   bool has_target{false};
   ParsedTarget first_target{};
 };

@@ -157,7 +157,7 @@ def read_sensitivity_params(ser):
 def parse_data_frame(frame_data: bytes):
     """
     Parse the intra-frame bytes from a radar output frame.
-    Returns (target_count, alarm_active, targets_list) or None.
+    Returns (target_count, approach_flag_active, targets_list) or None.
 
     Per-target dict: angle (°), distance (m), speed (km/h), direction, snr
     Direction byte: 0x01 = approaching, 0x00 = moving away
@@ -166,7 +166,7 @@ def parse_data_frame(frame_data: bytes):
         return None
 
     target_count = frame_data[0]
-    alarm        = bool(frame_data[1])   # 1 = approaching target present
+    approach_flag = bool(frame_data[1])  # Protocol approach flag (1 = approaching target present)
     targets      = []
     offset       = 2
 
@@ -182,7 +182,7 @@ def parse_data_frame(frame_data: bytes):
         targets.append({
             'angle':     angle_raw - 0x80,          # signed degrees
             'distance':  distance,                   # metres
-            'direction': 'approaching' if dir_byte == 0x01 else 'moving away',
+            'direction': 'Approaching' if dir_byte == 0x01 else 'Moving away',
             'speed':     speed,                      # km/h
             'snr':       snr,
             'raw_angle': angle_raw,
@@ -193,7 +193,7 @@ def parse_data_frame(frame_data: bytes):
         })
         offset += 5
 
-    return target_count, alarm, targets
+    return target_count, approach_flag, targets
 
 
 def stream_data_frames(ser, count: int = 20, total_timeout: float = 15.0):
@@ -344,7 +344,7 @@ def main():
     if sens:
         trigger_count = sens[0] if sens[0] != 0 else 1   # 0 means default=1
         snr_level     = sens[1] if sens[1] != 0 else 4   # 0 means default=4
-        print(f"  Trigger count threshold : {trigger_count}  (consecutive hits before alarm)")
+        print(f"  Trigger count threshold : {trigger_count}  (consecutive hits before approach flag)")
         print(f"  SNR threshold level     : {snr_level}  (3–8; higher = less sensitive)")
     else:
         print("  ✗ Could not read")
@@ -354,10 +354,10 @@ def main():
     ser.reset_input_buffer()
 
     try:
-        for i, (count, alarm, targets) in enumerate(stream_data_frames(ser, count=20)):
+        for i, (count, approach_flag, targets) in enumerate(stream_data_frames(ser, count=20)):
             ts = datetime.now().strftime("%H:%M:%S.%f")[:-3]
-            alarm_str = " ⚠  ALARM" if alarm else ""
-            print(f"[{ts}] frame {i+1:02d} | targets: {count}{alarm_str}")
+            approach_str = " ⚠  APPROACH FLAG" if approach_flag else ""
+            print(f"[{ts}] frame {i+1:02d} | targets: {count}{approach_str}")
             if targets:
                 for j, t in enumerate(targets):
                     print(f"         target {j+1}: "

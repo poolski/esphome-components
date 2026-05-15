@@ -12,7 +12,6 @@ bool parse_payload(const std::vector<uint8_t> &payload, ParsedFrame &frame) {
   }
 
   frame.target_count = payload[0];
-  frame.alarm = payload[1] != 0;
   if (frame.target_count == 0 || payload.size() < 7) {
     return false;
   }

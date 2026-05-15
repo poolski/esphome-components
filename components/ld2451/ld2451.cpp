@@ -41,6 +41,26 @@ void LD2451Component::setup() {
     ESP_LOGI(TAG, "Firmware: unavailable");
   }
   this->refresh_runtime_entities_();
+  const IdleResetOutput reset = build_idle_reset_output();
+  if (this->angle_sensor_ != nullptr) {
+    this->angle_sensor_->publish_state(reset.angle);
+  }
+  if (this->distance_sensor_ != nullptr) {
+    this->distance_sensor_->publish_state(reset.distance);
+  }
+  if (this->speed_sensor_ != nullptr) {
+    this->speed_sensor_->publish_state(reset.speed);
+  }
+  if (this->snr_sensor_ != nullptr) {
+    this->snr_sensor_->publish_state(reset.snr);
+  }
+  if (this->direction_text_sensor_ != nullptr) {
+    this->direction_text_sensor_->publish_state(reset.direction);
+  }
+  if (this->vehicle_detected_binary_sensor_ != nullptr) {
+    this->vehicle_detected_binary_sensor_->publish_state(false);
+  }
+  this->idle_published_ = true;
 }
 
 void LD2451Component::loop() {
@@ -89,7 +109,7 @@ void LD2451Component::dump_config() {
                 this->detection_direction_to_option_(this->desired_.detection_direction), this->desired_.no_target_delay,
                 this->desired_.trigger_count, this->desired_.min_snr, this->snr_threshold_, this->desired_.speed_correction);
   LOG_SENSOR("  ", "Target Count", this->target_count_sensor_);
-  LOG_BINARY_SENSOR("  ", "Alarm", this->alarm_binary_sensor_);
+  LOG_BINARY_SENSOR("  ", "Vehicle Detected", this->vehicle_detected_binary_sensor_);
   LOG_SENSOR("  ", "Angle", this->angle_sensor_);
   LOG_SENSOR("  ", "Distance", this->distance_sensor_);
   LOG_SENSOR("  ", "Speed", this->speed_sensor_);
@@ -427,9 +447,8 @@ bool LD2451Component::extract_frame_() {
   }
 
   uint8_t target_count = 0;
-  bool alarm = false;
   ParsedTarget target{};
-  bool has_target = this->parse_payload_(payload, target_count, alarm, target);
+  bool has_target = this->parse_payload_(payload, target_count, target);
   this->parsed_frames_++;
 
   if (!has_target) {
@@ -444,25 +463,23 @@ bool LD2451Component::extract_frame_() {
     }
   } else {
     ESP_LOGD(TAG,
-             "Frame %u: targets=%u alarm=%s angle=%ddeg dist=%um speed=%ukm/h dir_raw=0x%02X dir=%s snr=%u",
-             this->parsed_frames_, target_count, alarm ? "ON" : "OFF", target.angle, target.distance, target.speed,
-             target.direction, target.direction == 0x01 ? "approaching" : "moving_away", target.snr);
+             "Frame %u: targets=%u angle=%ddeg dist=%um speed=%ukm/h dir_raw=0x%02X dir=%s snr=%u", this->parsed_frames_,
+             target_count, target.angle, target.distance, target.speed, target.direction, direction_label(target.direction),
+             target.snr);
   }
 
-  this->publish_frame_(target_count, alarm, target, has_target);
+  this->publish_frame_(target_count, target, has_target);
 
   this->rx_buffer_.erase(this->rx_buffer_.begin(), this->rx_buffer_.begin() + static_cast<long>(frame_len));
   return true;
 }
 
-bool LD2451Component::parse_payload_(const std::vector<uint8_t> &payload, uint8_t &target_count, bool &alarm,
-                                     ParsedTarget &first_target) {
+bool LD2451Component::parse_payload_(const std::vector<uint8_t> &payload, uint8_t &target_count, ParsedTarget &first_target) {
   if (payload.size() < 2) {
     return false;
   }
 
   target_count = payload[0];
-  alarm = payload[1] != 0;
   if (target_count == 0 || payload.size() < 7) {
     return false;
   }
@@ -475,15 +492,45 @@ bool LD2451Component::parse_payload_(const std::vector<uint8_t> &payload, uint8_
   return true;
 }
 
-void LD2451Component::publish_frame_(uint8_t target_count, bool alarm, const ParsedTarget &first_target, bool has_target) {
+void LD2451Component::publish_frame_(uint8_t target_count, const ParsedTarget &first_target, bool has_target) {
   if (this->target_count_sensor_ != nullptr) {
     this->target_count_sensor_->publish_state(target_count);
   }
-  if (this->alarm_binary_sensor_ != nullptr) {
-    this->alarm_binary_sensor_->publish_state(alarm);
-  }
+
+  const uint32_t now = millis();
+  const auto publish_idle_reset = [this]() {
+    const IdleResetOutput reset = build_idle_reset_output();
+    if (this->angle_sensor_ != nullptr) {
+      this->angle_sensor_->publish_state(reset.angle);
+    }
+    if (this->distance_sensor_ != nullptr) {
+      this->distance_sensor_->publish_state(reset.distance);
+    }
+    if (this->speed_sensor_ != nullptr) {
+      this->speed_sensor_->publish_state(reset.speed);
+    }
+    if (this->snr_sensor_ != nullptr) {
+      this->snr_sensor_->publish_state(reset.snr);
+    }
+    if (this->direction_text_sensor_ != nullptr) {
+      this->direction_text_sensor_->publish_state(reset.direction);
+    }
+    if (this->vehicle_detected_binary_sensor_ != nullptr) {
+      this->vehicle_detected_binary_sensor_->publish_state(false);
+    }
+    this->detection_active_ = false;
+    this->idle_published_ = true;
+  };
+
+  const auto maybe_publish_idle_reset = [this, now, &publish_idle_reset]() {
+    if (should_publish_idle_reset(this->detection_active_, this->idle_published_, now, this->last_detection_ms_,
+                                  this->desired_.no_target_delay)) {
+      publish_idle_reset();
+    }
+  };
 
   if (!has_target) {
+    maybe_publish_idle_reset();
     return;
   }
 
@@ -491,7 +538,16 @@ void LD2451Component::publish_frame_(uint8_t target_count, bool alarm, const Par
   if (!output.publish) {
     ESP_LOGD(TAG, "Target filtered by distance window: %u (window=%u..%u)", first_target.distance,
              this->desired_.min_distance, this->desired_.max_distance);
+    maybe_publish_idle_reset();
     return;
+  }
+
+  this->last_detection_ms_ = now;
+  this->detection_active_ = true;
+  this->idle_published_ = false;
+
+  if (this->vehicle_detected_binary_sensor_ != nullptr) {
+    this->vehicle_detected_binary_sensor_->publish_state(true);
   }
 
   if (this->angle_sensor_ != nullptr) {
@@ -507,8 +563,7 @@ void LD2451Component::publish_frame_(uint8_t target_count, bool alarm, const Par
     this->snr_sensor_->publish_state(first_target.snr);
   }
   if (this->direction_text_sensor_ != nullptr) {
-    // Observed on verified LD2451 stream: 0x01 = approaching, 0x00 = moving away.
-    this->direction_text_sensor_->publish_state(first_target.direction == 0x01 ? "approaching" : "moving_away");
+    this->direction_text_sensor_->publish_state(direction_label(first_target.direction));
   }
 }
 

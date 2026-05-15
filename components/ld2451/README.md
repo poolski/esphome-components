@@ -9,8 +9,8 @@ This component parses LD2451 live data frames and exposes key values as ESPHome 
 | Capability        | Details                                                                                                                           |
 | ----------------- | --------------------------------------------------------------------------------------------------------------------------------- |
 | Frame parsing     | Parses LD2451 data frames (`F4 F3 F2 F1 ... F8 F7 F6 F5`)                                                                         |
-| Published data    | target count, alarm flag, first target angle, first target distance, first target speed, first target SNR, first target direction |
-| Direction mapping | `0x01` => `approaching`, `0x00` => `moving_away`                                                                                  |
+| Published data    | target count, vehicle detected, first target angle, first target distance, first target speed, first target SNR, first target direction |
+| Direction mapping | `0x01` => `Approaching`, `0x00` => `Moving away`, idle => `None`                                                                  |
 
 ## Installation
 
@@ -73,8 +73,8 @@ ld2451:
   uart_id: uart_bus
   target_count:
     name: "LD2451 Target Count"
-  alarm:
-    name: "LD2451 Alarm"
+  vehicle_detected:
+    name: "LD2451 Vehicle Detected"
   angle:
     name: "LD2451 Angle"
   distance:
@@ -104,7 +104,7 @@ ld2451:
 | `min_snr`             | integer         | no       | `0` or `3..8`                | radar-side sensitivity                         |
 | `speed_correction`    | float           | no       | `0.1..4.0`                   | multiplier for published speed, default `1.0`  |
 | `target_count`        | `sensor`        | no       | -                            | -                                              |
-| `alarm`               | `binary_sensor` | no       | -                            | -                                              |
+| `vehicle_detected`    | `binary_sensor` | no       | -                            | trigger-friendly detection state               |
 | `angle`               | `sensor`        | no       | -                            | -                                              |
 | `distance`            | `sensor`        | no       | -                            | -                                              |
 | `speed`               | `sensor`        | no       | -                            | -                                              |
@@ -133,9 +133,13 @@ UART validation is enforced for:
 | Topic              | Detail                                                                                                                       |
 | ------------------ | ---------------------------------------------------------------------------------------------------------------------------- |
 | Target publishing  | Current implementation publishes only the first target details (`target 1`) per frame                                        |
-| No-target behavior | If no target is present, only `target_count` and `alarm` are updated                                                         |
+| No-target behavior | After `no_target_delay`, target fields reset to `0`, direction resets to `None`, and `vehicle_detected` resets to `OFF`     |
 | Distance filtering | `min_distance` is software-side only: targets outside `min_distance..max_distance` are filtered from published target fields |
 | Speed correction   | `speed_correction` is software-side only: published speed is multiplied by this value                                        |
+
+### Home Assistant automation trigger
+
+Use `vehicle_detected` (`off` -> `on`) as the trigger in HA automations. The speed, distance, and direction sensors are updated on qualifying detections, and reset when idle.
 
 ## Runtime Controls Example
 
@@ -193,7 +197,7 @@ At `DEBUG`, the component logs:
 
 | Log type          | Details                                                                               |
 | ----------------- | ------------------------------------------------------------------------------------- |
-| Parsed frames     | decoded values (`targets`, `alarm`, `angle`, `distance`, `speed`, `direction`, `snr`) |
+| Parsed frames     | decoded values (`targets`, `angle`, `distance`, `speed`, `direction`, `snr`)          |
 | Empty-frame hints | periodic hints when only empty frames are received                                    |
 
 Important for pre-install bench checks: you may need large, deliberate movement to trigger detection

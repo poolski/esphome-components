@@ -9,7 +9,7 @@ AUTO_LOAD = ["sensor", "binary_sensor", "text_sensor", "number", "select"]
 MULTI_CONF = True
 
 CONF_TARGET_COUNT = "target_count"
-CONF_ALARM = "alarm"
+CONF_VEHICLE_DETECTED = "vehicle_detected"
 CONF_ANGLE = "angle"
 CONF_DISTANCE = "distance"
 CONF_SPEED = "speed"
@@ -137,9 +137,9 @@ CONFIG_SCHEMA = cv.All(
                 accuracy_decimals=0,
                 icon="mdi:counter",
             ),
-            cv.Optional(CONF_ALARM): binary_sensor.binary_sensor_schema(
+            cv.Optional(CONF_VEHICLE_DETECTED): binary_sensor.binary_sensor_schema(
                 device_class=DEVICE_CLASS_MOTION,
-                icon="mdi:motion-sensor",
+                icon="mdi:car",
             ),
             cv.Optional(CONF_ANGLE): sensor.sensor_schema(
                 unit_of_measurement="deg",
@@ -251,9 +251,9 @@ async def to_code(config):
     if CONF_TARGET_COUNT in config:
         sens = await sensor.new_sensor(config[CONF_TARGET_COUNT])
         cg.add(var.set_target_count_sensor(sens))
-    if CONF_ALARM in config:
-        bs = await binary_sensor.new_binary_sensor(config[CONF_ALARM])
-        cg.add(var.set_alarm_binary_sensor(bs))
+    if CONF_VEHICLE_DETECTED in config:
+        bs = await binary_sensor.new_binary_sensor(config[CONF_VEHICLE_DETECTED])
+        cg.add(var.set_vehicle_detected_binary_sensor(bs))
     if CONF_ANGLE in config:
         sens = await sensor.new_sensor(config[CONF_ANGLE])
         cg.add(var.set_angle_sensor(sens))

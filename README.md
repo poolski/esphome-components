@@ -47,7 +47,7 @@ See [`components/ld2451/README.md`](components/ld2451/README.md) for setup, conf
 | Area                           | Details                                                         |
 | ------------------------------ | --------------------------------------------------------------- |
 | UART parsing                   | HLK-LD2451 live frame parsing over UART (115200)                |
-| Exposed entities               | target count, alarm, angle, distance, speed, SNR, and direction |
+| Exposed entities               | target count, vehicle_detected, angle, distance, speed, SNR, and direction |
 | Diagnostics                    | debug logging guidance and movement-based bench test advice     |
 | Validation and troubleshooting | per-component validation command and troubleshooting notes      |
 
