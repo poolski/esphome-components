@@ -1,8 +1,11 @@
 #include "ld2451.h"
 
-#include <cmath>
 #include <cstring>
 
+#include "ack_codec.h"
+#include "config_state.h"
+#include "target_publisher.h"
+#include "control_entities.h"
 #include "esphome/core/log.h"
 #include "esphome/components/uart/uart.h"
 
@@ -16,78 +19,27 @@ static const uint8_t DATA_TAIL[] = {0xF8, 0xF7, 0xF6, 0xF5};
 static const uint8_t CMD_HEADER[] = {0xFD, 0xFC, 0xFB, 0xFA};
 static const uint8_t CMD_TAIL[] = {0x04, 0x03, 0x02, 0x01};
 
-void LD2451MaxDistanceNumber::control(float value) {
-  if (this->parent_ == nullptr) {
-    return;
+void LD2451Component::set_snr_threshold(int value) {
+  if (value < 0) {
+    value = 0;
+  } else if (value > 64) {
+    value = 64;
   }
-  this->parent_->set_max_distance(static_cast<int>(lroundf(value)));
-  this->publish_state(this->parent_->get_max_distance());
-}
-
-void LD2451MinDistanceNumber::control(float value) {
-  if (this->parent_ == nullptr) {
-    return;
-  }
-  this->parent_->set_min_distance(static_cast<int>(lroundf(value)));
-  this->publish_state(this->parent_->get_min_distance());
-}
-
-void LD2451MinSpeedNumber::control(float value) {
-  if (this->parent_ == nullptr) {
-    return;
-  }
-  this->parent_->set_min_speed(static_cast<int>(lroundf(value)));
-  this->publish_state(this->parent_->get_min_speed());
-}
-
-void LD2451NoTargetDelayNumber::control(float value) {
-  if (this->parent_ == nullptr) {
-    return;
-  }
-  this->parent_->set_no_target_delay(static_cast<int>(lroundf(value)));
-  this->publish_state(this->parent_->get_no_target_delay());
-}
-
-void LD2451TriggerCountNumber::control(float value) {
-  if (this->parent_ == nullptr) {
-    return;
-  }
-  this->parent_->set_trigger_count(static_cast<int>(lroundf(value)));
-  this->publish_state(this->parent_->get_trigger_count());
-}
-
-void LD2451MinSnrNumber::control(float value) {
-  if (this->parent_ == nullptr) {
-    return;
-  }
-  int requested = static_cast<int>(lroundf(value));
-  if (requested != 0 && requested < 3) {
-    ESP_LOGW(TAG, "Coercing min_snr=%d to 0; allowed values are 0 or 3..8", requested);
-    requested = 0;
-  }
-  this->parent_->set_min_snr(requested);
-  this->publish_state(this->parent_->get_min_snr());
-}
-
-void LD2451SpeedCorrectionNumber::control(float value) {
-  if (this->parent_ == nullptr) {
-    return;
-  }
-  this->parent_->set_speed_correction(value);
-  this->publish_state(this->parent_->get_speed_correction());
-}
-
-void LD2451DetectionDirectionSelect::control(const std::string &value) {
-  if (this->parent_ == nullptr) {
-    return;
-  }
-  this->parent_->set_detection_direction_option(value);
-  this->publish_state(this->parent_->get_detection_direction_option());
+  this->snr_threshold_ = static_cast<uint8_t>(value);
+  this->set_min_snr(map_app_snr_to_native(this->snr_threshold_));
 }
 
 void LD2451Component::setup() {
   this->rx_buffer_.reserve(256);
   this->applied_ = this->desired_;
+  FirmwareVersionInfo fw{};
+  if (this->read_firmware_version_(fw)) {
+    const std::string fw_version = format_firmware_version(fw);
+    ESP_LOGI(TAG, "Firmware: type=0x%04X version=%s (major=0x%04X minor=0x%08X)", fw.fw_type, fw_version.c_str(),
+             fw.major, static_cast<unsigned int>(fw.minor));
+  } else {
+    ESP_LOGI(TAG, "Firmware: unavailable");
+  }
   this->refresh_runtime_entities_();
 }
 
@@ -129,10 +81,10 @@ void LD2451Component::dump_config() {
   ESP_LOGCONFIG(TAG, "LD2451:");
   ESP_LOGCONFIG(TAG,
                 "  Runtime config: max_distance=%u min_distance=%u min_speed=%u detection_direction=%s no_target_delay=%u "
-                "trigger_count=%u min_snr=%u speed_correction=%.2f",
+                "trigger_count=%u min_snr=%u snr_threshold=%u speed_correction=%.2f",
                 this->desired_.max_distance, this->desired_.min_distance, this->desired_.min_speed,
                 this->detection_direction_to_option_(this->desired_.detection_direction), this->desired_.no_target_delay,
-                this->desired_.trigger_count, this->desired_.min_snr, this->desired_.speed_correction);
+                this->desired_.trigger_count, this->desired_.min_snr, this->snr_threshold_, this->desired_.speed_correction);
   LOG_SENSOR("  ", "Target Count", this->target_count_sensor_);
   LOG_BINARY_SENSOR("  ", "Alarm", this->alarm_binary_sensor_);
   LOG_SENSOR("  ", "Angle", this->angle_sensor_);
@@ -143,6 +95,47 @@ void LD2451Component::dump_config() {
 }
 
 float LD2451Component::get_setup_priority() const { return setup_priority::DATA; }
+
+void LD2451Component::set_max_distance(int value) {
+  this->desired_.max_distance = static_cast<uint8_t>(value);
+  normalize_distance_window(this->desired_);
+  this->config_dirty_ = true;
+}
+
+void LD2451Component::set_min_distance(int value) {
+  this->desired_.min_distance = static_cast<uint8_t>(value);
+  if (this->desired_.min_distance > this->desired_.max_distance) {
+    this->desired_.max_distance = this->desired_.min_distance;
+  }
+  this->config_dirty_ = true;
+}
+
+void LD2451Component::set_min_speed(int value) {
+  this->desired_.min_speed = static_cast<uint8_t>(value);
+  this->config_dirty_ = true;
+}
+
+void LD2451Component::set_detection_direction(int value) {
+  this->desired_.detection_direction = static_cast<uint8_t>(value);
+  this->config_dirty_ = true;
+}
+
+void LD2451Component::set_no_target_delay(int value) {
+  this->desired_.no_target_delay = static_cast<uint8_t>(value);
+  this->config_dirty_ = true;
+}
+
+void LD2451Component::set_trigger_count(int value) {
+  this->desired_.trigger_count = static_cast<uint8_t>(value);
+  this->config_dirty_ = true;
+}
+
+void LD2451Component::set_min_snr(int value) {
+  this->desired_.min_snr = coerce_native_min_snr(static_cast<uint8_t>(value));
+  this->config_dirty_ = true;
+}
+
+void LD2451Component::set_speed_correction(float value) { this->desired_.speed_correction = value; }
 
 bool LD2451Component::read_exact_(uint8_t *dest, size_t len, uint32_t timeout_ms) {
   const uint32_t start = millis();
@@ -230,14 +223,13 @@ bool LD2451Component::send_command_wait_ack_(uint16_t command, const std::vector
     return false;
   }
 
-  const uint16_t ack_cmd = static_cast<uint16_t>(ack_payload[0]) | (static_cast<uint16_t>(ack_payload[1]) << 8);
-  const uint16_t status = static_cast<uint16_t>(ack_payload[2]) | (static_cast<uint16_t>(ack_payload[3]) << 8);
-  if (ack_cmd != static_cast<uint16_t>(command | 0x0100) || status != 0) {
+  const AckDecodeResult decoded = decode_ack(command, ack_payload, MAX_ACK_PAYLOAD_LEN);
+  if (!decoded.ok) {
     return false;
   }
 
   if (ret != nullptr) {
-    ret->assign(ack_payload.begin() + 4, ack_payload.end());
+    ret->assign(decoded.value.begin(), decoded.value.end());
   }
   return true;
 }
@@ -248,6 +240,14 @@ bool LD2451Component::enter_config_mode_() {
 }
 
 bool LD2451Component::exit_config_mode_() { return this->send_command_wait_ack_(0x00FE, {}); }
+
+bool LD2451Component::read_firmware_version_(FirmwareVersionInfo &out) {
+  std::vector<uint8_t> ret;
+  if (!this->send_command_wait_ack_(0x00A0, {}, &ret)) {
+    return false;
+  }
+  return decode_firmware_version(ret, out);
+}
 
 bool LD2451Component::write_target_detection_params_() {
   const std::vector<uint8_t> value = {
@@ -287,6 +287,9 @@ void LD2451Component::refresh_runtime_entities_() {
   }
   if (this->min_snr_number_ != nullptr) {
     this->min_snr_number_->publish_state(this->desired_.min_snr);
+  }
+  if (this->snr_threshold_number_ != nullptr) {
+    this->snr_threshold_number_->publish_state(this->snr_threshold_);
   }
   if (this->speed_correction_number_ != nullptr) {
     this->speed_correction_number_->publish_state(this->desired_.speed_correction);
@@ -462,13 +465,12 @@ void LD2451Component::publish_frame_(uint8_t target_count, bool alarm, const Par
     return;
   }
 
-  if (first_target.distance < this->desired_.min_distance || first_target.distance > this->desired_.max_distance) {
+  const TargetOutput output = compute_target_output(this->desired_, first_target);
+  if (!output.publish) {
     ESP_LOGD(TAG, "Target filtered by distance window: %u (window=%u..%u)", first_target.distance,
              this->desired_.min_distance, this->desired_.max_distance);
     return;
   }
-
-  const float corrected_speed = static_cast<float>(first_target.speed) * this->desired_.speed_correction;
 
   if (this->angle_sensor_ != nullptr) {
     this->angle_sensor_->publish_state(first_target.angle);
@@ -477,7 +479,7 @@ void LD2451Component::publish_frame_(uint8_t target_count, bool alarm, const Par
     this->distance_sensor_->publish_state(first_target.distance);
   }
   if (this->speed_sensor_ != nullptr) {
-    this->speed_sensor_->publish_state(corrected_speed);
+    this->speed_sensor_->publish_state(output.corrected_speed);
   }
   if (this->snr_sensor_ != nullptr) {
     this->snr_sensor_->publish_state(first_target.snr);
