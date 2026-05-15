@@ -1,8 +1,11 @@
 #include <cassert>
+#include <type_traits>
 
 #include "../runtime_sync.h"
 
 using namespace esphome::ld2451;
+
+static_assert(std::is_same_v<decltype(&reconcile_from_device), ReconcileResult (*)(const RuntimeConfig &, RuntimeConfig)>);
 
 int main() {
   RuntimeConfig current{};

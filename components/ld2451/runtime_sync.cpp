@@ -4,14 +4,13 @@
 
 namespace esphome::ld2451 {
 
-ReconcileResult reconcile_from_device(const RuntimeConfig &current, const RuntimeConfig &readback) {
-  RuntimeConfig normalized = readback;
-  normalize_distance_window(normalized);
-  normalized.min_snr = coerce_native_min_snr(normalized.min_snr);
+ReconcileResult reconcile_from_device(const RuntimeConfig &current, RuntimeConfig readback) {
+  normalize_distance_window(readback);
+  readback.min_snr = coerce_native_min_snr(readback.min_snr);
 
   ReconcileResult result;
-  result.config = normalized;
-  result.changed = !runtime_config_equal(current, normalized);
+  result.config = readback;
+  result.changed = !runtime_config_equal(current, readback);
   return result;
 }
 
