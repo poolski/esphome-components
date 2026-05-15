@@ -76,6 +76,7 @@ class LD2451Component : public Component, public uart::UARTDevice {
   bool read_firmware_version_(FirmwareVersionInfo &out);
   bool write_target_detection_params_();
   bool write_sensitivity_params_();
+  void mark_config_dirty_if_changed_(const RuntimeConfig &before);
   void refresh_runtime_entities_();
   static constexpr uint32_t COMMAND_ACK_TIMEOUT_MS = 120;
   static constexpr uint16_t MAX_ACK_PAYLOAD_LEN = 64;
@@ -100,6 +101,7 @@ class LD2451Component : public Component, public uart::UARTDevice {
   bool config_dirty_{false};
   bool config_in_flight_{false};
   uint32_t last_config_attempt_ms_{0};
+  uint8_t config_apply_failures_{0};
   RuntimeConfig desired_{};
   RuntimeConfig applied_{};
   uint8_t snr_threshold_{0};

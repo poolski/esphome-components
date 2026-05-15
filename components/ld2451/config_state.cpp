@@ -37,4 +37,10 @@ uint8_t map_app_snr_to_native(uint8_t app_value) {
   return 8;
 }
 
+bool runtime_config_equal(const RuntimeConfig &a, const RuntimeConfig &b) {
+  return a.max_distance == b.max_distance && a.min_distance == b.min_distance && a.min_speed == b.min_speed &&
+         a.detection_direction == b.detection_direction && a.no_target_delay == b.no_target_delay &&
+         a.trigger_count == b.trigger_count && a.min_snr == b.min_snr && a.speed_correction == b.speed_correction;
+}
+
 }  // namespace esphome::ld2451

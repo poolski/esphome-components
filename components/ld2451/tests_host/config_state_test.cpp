@@ -16,5 +16,13 @@ int main() {
   assert(map_app_snr_to_native(64) == 8);
   assert(coerce_native_min_snr(2) == 0);
   assert(coerce_native_min_snr(7) == 7);
+
+  RuntimeConfig baseline{};
+  RuntimeConfig same{};
+  assert(runtime_config_equal(baseline, same));
+
+  RuntimeConfig changed = baseline;
+  changed.min_distance = 5;
+  assert(!runtime_config_equal(baseline, changed));
   return 0;
 }

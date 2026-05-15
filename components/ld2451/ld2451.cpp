@@ -70,7 +70,12 @@ void LD2451Component::loop() {
       bool ok = this->apply_runtime_config_();
       this->config_in_flight_ = false;
       if (!ok) {
-        ESP_LOGW(TAG, "Runtime config apply failed; keeping previous applied settings");
+        this->config_apply_failures_++;
+        if (this->config_apply_failures_ > 4) {
+          this->last_config_attempt_ms_ = now + 1750;
+        }
+        ESP_LOGW(TAG, "Runtime config apply failed (attempt=%u); keeping previous applied settings",
+                 static_cast<unsigned int>(this->config_apply_failures_));
         this->refresh_runtime_entities_();
       }
     }
@@ -97,45 +102,59 @@ void LD2451Component::dump_config() {
 float LD2451Component::get_setup_priority() const { return setup_priority::DATA; }
 
 void LD2451Component::set_max_distance(int value) {
+  const RuntimeConfig before = this->desired_;
   this->desired_.max_distance = static_cast<uint8_t>(value);
   normalize_distance_window(this->desired_);
-  this->config_dirty_ = true;
+  this->mark_config_dirty_if_changed_(before);
 }
 
 void LD2451Component::set_min_distance(int value) {
+  const RuntimeConfig before = this->desired_;
   this->desired_.min_distance = static_cast<uint8_t>(value);
   if (this->desired_.min_distance > this->desired_.max_distance) {
     this->desired_.max_distance = this->desired_.min_distance;
   }
-  this->config_dirty_ = true;
+  this->mark_config_dirty_if_changed_(before);
 }
 
 void LD2451Component::set_min_speed(int value) {
+  const RuntimeConfig before = this->desired_;
   this->desired_.min_speed = static_cast<uint8_t>(value);
-  this->config_dirty_ = true;
+  this->mark_config_dirty_if_changed_(before);
 }
 
 void LD2451Component::set_detection_direction(int value) {
+  const RuntimeConfig before = this->desired_;
   this->desired_.detection_direction = static_cast<uint8_t>(value);
-  this->config_dirty_ = true;
+  this->mark_config_dirty_if_changed_(before);
 }
 
 void LD2451Component::set_no_target_delay(int value) {
+  const RuntimeConfig before = this->desired_;
   this->desired_.no_target_delay = static_cast<uint8_t>(value);
-  this->config_dirty_ = true;
+  this->mark_config_dirty_if_changed_(before);
 }
 
 void LD2451Component::set_trigger_count(int value) {
+  const RuntimeConfig before = this->desired_;
   this->desired_.trigger_count = static_cast<uint8_t>(value);
-  this->config_dirty_ = true;
+  this->mark_config_dirty_if_changed_(before);
 }
 
 void LD2451Component::set_min_snr(int value) {
+  const RuntimeConfig before = this->desired_;
   this->desired_.min_snr = coerce_native_min_snr(static_cast<uint8_t>(value));
-  this->config_dirty_ = true;
+  this->mark_config_dirty_if_changed_(before);
 }
 
 void LD2451Component::set_speed_correction(float value) { this->desired_.speed_correction = value; }
+
+void LD2451Component::mark_config_dirty_if_changed_(const RuntimeConfig &before) {
+  if (runtime_config_equal(before, this->desired_)) {
+    return;
+  }
+  this->config_dirty_ = true;
+}
 
 bool LD2451Component::read_exact_(uint8_t *dest, size_t len, uint32_t timeout_ms) {
   const uint32_t start = millis();
@@ -322,22 +341,27 @@ const char *LD2451Component::detection_direction_to_option_(uint8_t value) {
 
 bool LD2451Component::apply_runtime_config_() {
   if (!this->enter_config_mode_()) {
+    ESP_LOGW(TAG, "Runtime config apply failed at step: enter_config_mode");
     return false;
   }
   if (!this->write_target_detection_params_()) {
+    ESP_LOGW(TAG, "Runtime config apply failed at step: write_target_detection_params");
     this->exit_config_mode_();
     return false;
   }
   if (!this->write_sensitivity_params_()) {
+    ESP_LOGW(TAG, "Runtime config apply failed at step: write_sensitivity_params");
     this->exit_config_mode_();
     return false;
   }
   if (!this->exit_config_mode_()) {
+    ESP_LOGW(TAG, "Runtime config apply failed at step: exit_config_mode");
     return false;
   }
 
   this->applied_ = this->desired_;
   this->config_dirty_ = false;
+  this->config_apply_failures_ = 0;
   this->refresh_runtime_entities_();
   ESP_LOGD(TAG,
             "Applied runtime config: max_distance=%u min_speed=%u direction=%u no_target_delay=%u trigger_count=%u "
