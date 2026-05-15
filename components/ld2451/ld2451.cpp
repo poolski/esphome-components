@@ -4,6 +4,7 @@
 
 #include "ack_codec.h"
 #include "config_state.h"
+#include "runtime_sync.h"
 #include "target_publisher.h"
 #include "control_entities.h"
 #include "esphome/core/log.h"
@@ -64,6 +65,7 @@ void LD2451Component::setup() {
 }
 
 void LD2451Component::loop() {
+  const uint32_t now = millis();
   size_t bytes_read = 0;
   while (this->available()) {
     this->rx_buffer_.push_back(this->read());
@@ -71,7 +73,6 @@ void LD2451Component::loop() {
   }
 
   if (bytes_read > 0) {
-    const uint32_t now = millis();
     if (now - this->last_rx_activity_log_ms_ > 5000) {
       ESP_LOGD(TAG, "RX activity: read=%u bytes, buffered=%u bytes", static_cast<unsigned int>(bytes_read),
                static_cast<unsigned int>(this->rx_buffer_.size()));
@@ -83,7 +84,6 @@ void LD2451Component::loop() {
   }
 
   if (this->config_dirty_ && !this->config_in_flight_) {
-    const uint32_t now = millis();
     const uint32_t retry_ms = this->config_apply_failures_ > 4 ? 2000 : 250;
     if (now - this->last_config_attempt_ms_ >= retry_ms) {
       this->last_config_attempt_ms_ = now;
@@ -96,6 +96,20 @@ void LD2451Component::loop() {
                  static_cast<unsigned int>(this->config_apply_failures_));
         this->refresh_runtime_entities_();
       }
+    }
+  }
+
+  if (should_run_sync(this->force_sync_, this->sync_in_flight_ || this->config_in_flight_ || this->config_dirty_, now,
+                      this->last_sync_ms_, SYNC_INTERVAL_MS)) {
+    this->last_sync_ms_ = now;
+    this->sync_in_flight_ = true;
+    const bool ok = this->sync_runtime_config_from_device_();
+    this->sync_in_flight_ = false;
+    if (!ok) {
+      this->sync_failures_++;
+      ESP_LOGW(TAG, "Runtime config sync failed (attempt=%u)", static_cast<unsigned int>(this->sync_failures_));
+    } else {
+      this->sync_failures_ = 0;
     }
   }
 }
@@ -284,6 +298,72 @@ bool LD2451Component::read_firmware_version_(FirmwareVersionInfo &out) {
     return false;
   }
   return decode_firmware_version(ret, out);
+}
+
+bool LD2451Component::read_runtime_config_(RuntimeConfig &out) {
+  out = this->desired_;
+  if (!this->enter_config_mode_()) {
+    ESP_LOGW(TAG, "Runtime config read failed at step: enter_config_mode");
+    return false;
+  }
+
+  std::vector<uint8_t> target_ret;
+  std::vector<uint8_t> sensitivity_ret;
+  bool ok = true;
+
+  if (!this->send_command_wait_ack_(0x0012, {}, &target_ret)) {
+    ESP_LOGW(TAG, "Runtime config read failed at step: read_target_detection_params");
+    ok = false;
+  } else if (target_ret.size() < 4) {
+    ESP_LOGW(TAG, "Runtime config read failed: target_detection_params response too short (%u)",
+             static_cast<unsigned int>(target_ret.size()));
+    ok = false;
+  }
+
+  if (ok && !this->send_command_wait_ack_(0x0013, {}, &sensitivity_ret)) {
+    ESP_LOGW(TAG, "Runtime config read failed at step: read_sensitivity_params");
+    ok = false;
+  } else if (ok && sensitivity_ret.size() < 2) {
+    ESP_LOGW(TAG, "Runtime config read failed: sensitivity_params response too short (%u)",
+             static_cast<unsigned int>(sensitivity_ret.size()));
+    ok = false;
+  }
+
+  if (!this->exit_config_mode_()) {
+    ESP_LOGW(TAG, "Runtime config read failed at step: exit_config_mode");
+    return false;
+  }
+
+  if (!ok) {
+    return false;
+  }
+
+  out.max_distance = target_ret[0];
+  out.detection_direction = target_ret[1];
+  out.min_speed = target_ret[2];
+  out.no_target_delay = target_ret[3];
+  out.trigger_count = sensitivity_ret[0] == 0 ? 1 : sensitivity_ret[0];
+  out.min_snr = sensitivity_ret[1];
+  return true;
+}
+
+bool LD2451Component::sync_runtime_config_from_device_() {
+  RuntimeConfig readback{};
+  if (!this->read_runtime_config_(readback)) {
+    return false;
+  }
+
+  const ReconcileResult reconciled = reconcile_from_device(this->desired_, readback);
+  this->desired_ = reconciled.config;
+  this->applied_ = reconciled.config;
+  this->config_dirty_ = false;
+  this->config_apply_failures_ = 0;
+  this->force_sync_ = false;
+
+  if (reconciled.changed) {
+    this->refresh_runtime_entities_();
+  }
+  return true;
 }
 
 bool LD2451Component::write_target_detection_params_() {
