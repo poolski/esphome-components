@@ -15,8 +15,6 @@ external_components:
   - source:
       type: git
       url: https://github.com/poolski/esphome-components
-      ref: main
-    path: components
     refresh: 1d
 ```
 
@@ -27,8 +25,7 @@ Equivalent shorthand:
 
 ```yaml
 external_components:
-  - source: github://poolski/esphome-components@main
-    path: components
+  - source: github://poolski/esphome-components
     refresh: 1d
 ```
 
@@ -36,8 +33,7 @@ By default, ESPHome loads all components from that source. You can optionally li
 
 ```yaml
 external_components:
-  - source: github://poolski/esphome-components@main
-    path: components
+  - source: github://poolski/esphome-components
     refresh: 1d
     components: [ld2451]
 ```

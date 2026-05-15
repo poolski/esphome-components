@@ -28,8 +28,6 @@ external_components:
   - source:
       type: git
       url: https://github.com/poolski/esphome-components
-      ref: main
-    path: components
     refresh: 1d
     components: [ld2451]
 ```
@@ -42,7 +40,6 @@ Equivalent shorthand:
 ```yaml
 external_components:
   - source: github://poolski/esphome-components@main
-    path: components
     refresh: 1d
     components: [ld2451]
 ```
