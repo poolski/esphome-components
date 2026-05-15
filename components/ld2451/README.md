@@ -6,18 +6,11 @@ This component parses LD2451 live data frames and exposes key values as ESPHome 
 
 ## Features
 
-- Parses LD2451 data frames (`F4 F3 F2 F1 ... F8 F7 F6 F5`)
-- Publishes:
-  - target count
-  - alarm flag
-  - first target angle
-  - first target distance
-  - first target speed
-  - first target SNR
-  - first target direction
-- Direction mapping follows verified LD2451 stream behavior:
-  - `0x01` => `approaching`
-  - `0x00` => `moving_away`
+| Capability        | Details                                                                                                                           |
+| ----------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| Frame parsing     | Parses LD2451 data frames (`F4 F3 F2 F1 ... F8 F7 F6 F5`)                                                                         |
+| Published data    | target count, alarm flag, first target angle, first target distance, first target speed, first target SNR, first target direction |
+| Direction mapping | `0x01` => `approaching`, `0x00` => `moving_away`                                                                                  |
 
 ## Installation
 
@@ -66,8 +59,6 @@ external_components:
   - source:
       type: git
       url: https://github.com/poolski/esphome-components
-      ref: main
-    path: components
     refresh: 1d
     components: [ld2451]
 
@@ -100,40 +91,51 @@ ld2451:
 
 `ld2451:` supports:
 
-- `id` (required)
-- `uart_id` (required)
-- `max_distance` (optional): `10..100` (radar-side + software upper cap, default `100`)
-- `min_distance` (optional): `0..100` (software publish filter, default `0`)
-- `min_speed` (optional): `0..120` (radar-side)
-- `detection_direction` (optional): `away` / `approach` / `both` (radar-side)
-- `no_target_delay` (optional): `0..255` seconds (radar-side)
-- `trigger_count` (optional): `1..10` (radar-side sensitivity)
-- `min_snr` (optional): `0` or `3..8` (radar-side sensitivity)
-- `speed_correction` (optional): `0.1..4.0` multiplier for published speed (default `1.0`)
-- `target_count` (optional `sensor`)
-- `alarm` (optional `binary_sensor`)
-- `angle` (optional `sensor`)
-- `distance` (optional `sensor`)
-- `speed` (optional `sensor`)
-- `snr` (optional `sensor`)
-- `direction` (optional `text_sensor`)
-- `controls` (optional runtime entities):
-  - numeric controls: `max_distance`, `min_distance`, `min_speed`, `no_target_delay`, `trigger_count`, `min_snr`, `snr_threshold`, `speed_correction`
-  - select control: `detection_direction` (`away`, `approach`, `both`)
-  - runtime note: `min_snr` only accepts `0` or `3..8`; runtime values `1` and `2` are coerced to `0`
-  - runtime note: `snr_threshold` accepts `0..64` and is mapped to the native LD2451 `min_snr` scale (`0`, `3..8`)
+| Key                   | Type            | Required | Range/Options                | Notes                                          |
+| --------------------- | --------------- | -------- | ---------------------------- | ---------------------------------------------- |
+| `id`                  | component ID    | yes      | -                            | -                                              |
+| `uart_id`             | UART ID         | yes      | -                            | -                                              |
+| `max_distance`        | integer         | no       | `10..100`                    | radar-side + software upper cap, default `100` |
+| `min_distance`        | integer         | no       | `0..100`                     | software publish filter, default `0`           |
+| `min_speed`           | integer         | no       | `0..120`                     | radar-side                                     |
+| `detection_direction` | enum            | no       | `away` / `approach` / `both` | radar-side                                     |
+| `no_target_delay`     | integer         | no       | `0..255` seconds             | radar-side                                     |
+| `trigger_count`       | integer         | no       | `1..10`                      | radar-side sensitivity                         |
+| `min_snr`             | integer         | no       | `0` or `3..8`                | radar-side sensitivity                         |
+| `speed_correction`    | float           | no       | `0.1..4.0`                   | multiplier for published speed, default `1.0`  |
+| `target_count`        | `sensor`        | no       | -                            | -                                              |
+| `alarm`               | `binary_sensor` | no       | -                            | -                                              |
+| `angle`               | `sensor`        | no       | -                            | -                                              |
+| `distance`            | `sensor`        | no       | -                            | -                                              |
+| `speed`               | `sensor`        | no       | -                            | -                                              |
+| `snr`                 | `sensor`        | no       | -                            | -                                              |
+| `direction`           | `text_sensor`   | no       | -                            | -                                              |
+| `controls`            | object          | no       | see below                    | runtime entities                               |
+
+`controls` details:
+
+| Control group    | Details                                                                                                                         |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| Numeric controls | `max_distance`, `min_distance`, `min_speed`, `no_target_delay`, `trigger_count`, `min_snr`, `snr_threshold`, `speed_correction` |
+| Select controls  | `detection_direction` (`away`, `approach`, `both`)                                                                              |
+| Runtime notes    | `min_snr` only accepts `0` or `3..8`; runtime values `1` and `2` are coerced to `0`                                             |
+| Runtime notes    | `snr_threshold` accepts `0..64` and is mapped to the native LD2451 `min_snr` scale (`0`, `3..8`)                                |
 
 UART validation is enforced for:
 
-- baud rate `115200`
-- RX pin required
+| Validation     | Requirement |
+| -------------- | ----------- |
+| UART baud rate | `115200`    |
+| RX pin         | required    |
 
 ## Notes
 
-- Current implementation publishes only the first target details (`target 1`) per frame.
-- If no target is present, only `target_count` and `alarm` are updated.
-- `min_distance` is software-side only: targets outside `min_distance..max_distance` are filtered from published target fields.
-- `speed_correction` is software-side only: published speed is multiplied by this value.
+| Topic              | Detail                                                                                                                       |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------------------- |
+| Target publishing  | Current implementation publishes only the first target details (`target 1`) per frame                                        |
+| No-target behavior | If no target is present, only `target_count` and `alarm` are updated                                                         |
+| Distance filtering | `min_distance` is software-side only: targets outside `min_distance..max_distance` are filtered from published target fields |
+| Speed correction   | `speed_correction` is software-side only: published speed is multiplied by this value                                        |
 
 ## Runtime Controls Example
 
@@ -189,8 +191,10 @@ logger:
 
 At `DEBUG`, the component logs:
 
-- Parsed target frames with decoded values (`targets`, `alarm`, `angle`, `distance`, `speed`, `direction`, `snr`)
-- Periodic hints when only empty frames are received
+| Log type          | Details                                                                               |
+| ----------------- | ------------------------------------------------------------------------------------- |
+| Parsed frames     | decoded values (`targets`, `alarm`, `angle`, `distance`, `speed`, `direction`, `snr`) |
+| Empty-frame hints | periodic hints when only empty frames are received                                    |
 
 Important for pre-install bench checks: you may need large, deliberate movement to trigger detection
 (for example, walking or running toward the sensor, or broad hand/body motion). Small or static motion often does not

@@ -44,10 +44,12 @@ Then configure whichever component(s) you want to use. Each component has its ow
 
 See [`components/ld2451/README.md`](components/ld2451/README.md) for setup, configuration, debugging, and troubleshooting details.
 
-- HLK-LD2451 live frame parsing over UART (115200)
-- entities for target count, alarm, angle, distance, speed, SNR, and direction
-- debug logging guidance and movement-based bench test advice
-- per-component validation command and troubleshooting notes
+| Area                           | Details                                                         |
+| ------------------------------ | --------------------------------------------------------------- |
+| UART parsing                   | HLK-LD2451 live frame parsing over UART (115200)                |
+| Exposed entities               | target count, alarm, angle, distance, speed, SNR, and direction |
+| Diagnostics                    | debug logging guidance and movement-based bench test advice     |
+| Validation and troubleshooting | per-component validation command and troubleshooting notes      |
 
 ## Development and Testing
 
