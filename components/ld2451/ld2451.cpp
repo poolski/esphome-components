@@ -64,16 +64,14 @@ void LD2451Component::loop() {
 
   if (this->config_dirty_ && !this->config_in_flight_) {
     const uint32_t now = millis();
-    if (now - this->last_config_attempt_ms_ >= 250) {
+    const uint32_t retry_ms = this->config_apply_failures_ > 4 ? 2000 : 250;
+    if (now - this->last_config_attempt_ms_ >= retry_ms) {
       this->last_config_attempt_ms_ = now;
       this->config_in_flight_ = true;
       bool ok = this->apply_runtime_config_();
       this->config_in_flight_ = false;
       if (!ok) {
         this->config_apply_failures_++;
-        if (this->config_apply_failures_ > 4) {
-          this->last_config_attempt_ms_ = now + 1750;
-        }
         ESP_LOGW(TAG, "Runtime config apply failed (attempt=%u); keeping previous applied settings",
                  static_cast<unsigned int>(this->config_apply_failures_));
         this->refresh_runtime_entities_();
