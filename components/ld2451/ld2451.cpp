@@ -3,6 +3,7 @@
 #include <cmath>
 #include <cstring>
 
+#include "ack_codec.h"
 #include "esphome/core/log.h"
 #include "esphome/components/uart/uart.h"
 
@@ -230,14 +231,13 @@ bool LD2451Component::send_command_wait_ack_(uint16_t command, const std::vector
     return false;
   }
 
-  const uint16_t ack_cmd = static_cast<uint16_t>(ack_payload[0]) | (static_cast<uint16_t>(ack_payload[1]) << 8);
-  const uint16_t status = static_cast<uint16_t>(ack_payload[2]) | (static_cast<uint16_t>(ack_payload[3]) << 8);
-  if (ack_cmd != static_cast<uint16_t>(command | 0x0100) || status != 0) {
+  const AckDecodeResult decoded = decode_ack(command, ack_payload, MAX_ACK_PAYLOAD_LEN);
+  if (!decoded.ok) {
     return false;
   }
 
   if (ret != nullptr) {
-    ret->assign(ack_payload.begin() + 4, ack_payload.end());
+    ret->assign(decoded.value.begin(), decoded.value.end());
   }
   return true;
 }

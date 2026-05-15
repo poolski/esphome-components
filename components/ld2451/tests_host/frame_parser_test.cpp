@@ -1,7 +1,7 @@
 #include <cassert>
 #include <vector>
 
-#include "../protocol/frame_parser.h"
+#include "../frame_parser.h"
 
 using namespace esphome::ld2451;
 

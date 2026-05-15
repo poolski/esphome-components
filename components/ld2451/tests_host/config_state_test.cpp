@@ -1,6 +1,6 @@
 #include <cassert>
 
-#include "../runtime/config_state.h"
+#include "../config_state.h"
 
 using namespace esphome::ld2451;
 

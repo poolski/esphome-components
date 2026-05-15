@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../internal/types.h"
+#include "types.h"
 
 namespace esphome::ld2451 {
 

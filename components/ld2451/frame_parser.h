@@ -4,7 +4,7 @@
 #include <cstdint>
 #include <vector>
 
-#include "../internal/types.h"
+#include "types.h"
 
 namespace esphome::ld2451 {
 
