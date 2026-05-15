@@ -105,6 +105,14 @@ ld2451:
 
 - `id` (required)
 - `uart_id` (required)
+- `max_distance` (optional): `10..100` (radar-side + software upper cap, default `100`)
+- `min_distance` (optional): `0..100` (software publish filter, default `0`)
+- `min_speed` (optional): `0..120` (radar-side)
+- `detection_direction` (optional): `away` / `approach` / `both` (radar-side)
+- `no_target_delay` (optional): `0..255` seconds (radar-side)
+- `trigger_count` (optional): `1..10` (radar-side sensitivity)
+- `min_snr` (optional): `0` or `3..8` (radar-side sensitivity)
+- `speed_correction` (optional): `0.1..4.0` multiplier for published speed (default `1.0`)
 - `target_count` (optional `sensor`)
 - `alarm` (optional `binary_sensor`)
 - `angle` (optional `sensor`)
@@ -112,6 +120,10 @@ ld2451:
 - `speed` (optional `sensor`)
 - `snr` (optional `sensor`)
 - `direction` (optional `text_sensor`)
+- `controls` (optional runtime entities):
+  - numeric controls: `max_distance`, `min_distance`, `min_speed`, `no_target_delay`, `trigger_count`, `min_snr`, `speed_correction`
+  - select control: `detection_direction` (`away`, `approach`, `both`)
+  - runtime note: `min_snr` only accepts `0` or `3..8`; runtime values `1` and `2` are coerced to `0`
 
 UART validation is enforced for:
 
@@ -122,6 +134,41 @@ UART validation is enforced for:
 
 - Current implementation publishes only the first target details (`target 1`) per frame.
 - If no target is present, only `target_count` and `alarm` are updated.
+- `min_distance` is software-side only: targets outside `min_distance..max_distance` are filtered from published target fields.
+- `speed_correction` is software-side only: published speed is multiplied by this value.
+
+## Runtime Controls Example
+
+```yaml
+ld2451:
+  id: radar
+  uart_id: uart_bus
+  max_distance: 100
+  min_distance: 5
+  min_speed: 10
+  detection_direction: both
+  no_target_delay: 2
+  trigger_count: 2
+  min_snr: 4
+  speed_correction: 1.05
+  controls:
+    max_distance:
+      name: "LD2451 Max Distance"
+    min_distance:
+      name: "LD2451 Min Distance"
+    min_speed:
+      name: "LD2451 Min Speed"
+    no_target_delay:
+      name: "LD2451 No Target Delay"
+    trigger_count:
+      name: "LD2451 Trigger Count"
+    min_snr:
+      name: "LD2451 Min SNR"
+    speed_correction:
+      name: "LD2451 Speed Correction"
+    detection_direction:
+      name: "LD2451 Detection Direction"
+```
 
 ## Debug Logging
 

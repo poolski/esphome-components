@@ -1,0 +1,35 @@
+esphome:
+  name: ld2451-invalid-min-snr
+
+esp32:
+  board: esp32dev
+  framework:
+    type: arduino
+
+logger:
+
+api:
+
+ota:
+  platform: esphome
+
+wifi:
+  ssid: "test"
+  password: "testtest"
+
+external_components:
+  - source:
+      type: local
+      path: ../../../components
+    components: [ld2451]
+
+uart:
+  id: uart_bus
+  tx_pin: GPIO17
+  rx_pin: GPIO16
+  baud_rate: 115200
+
+ld2451:
+  id: radar
+  uart_id: uart_bus
+  min_snr: 2

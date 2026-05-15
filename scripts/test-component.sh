@@ -22,6 +22,21 @@ fi
 echo "==> [${component_dir}] esphome config"
 esphome config "${validate_file}"
 
+for extra in "${component_dir}/tests"/*.yaml; do
+  if [[ -f "${extra}" ]]; then
+    if [[ "${extra}" == *"invalid"* ]]; then
+      echo "==> [${component_dir}] esphome config ${extra} (expect fail)"
+      if esphome config "${extra}"; then
+        echo "Expected validation failure for ${extra}, but config passed" >&2
+        exit 1
+      fi
+    else
+      echo "==> [${component_dir}] esphome config ${extra}"
+      esphome config "${extra}"
+    fi
+  fi
+done
+
 echo "==> [${component_dir}] esphome compile"
 esphome compile "${validate_file}"
 
