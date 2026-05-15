@@ -118,9 +118,10 @@ ld2451:
 - `snr` (optional `sensor`)
 - `direction` (optional `text_sensor`)
 - `controls` (optional runtime entities):
-  - numeric controls: `max_distance`, `min_distance`, `min_speed`, `no_target_delay`, `trigger_count`, `min_snr`, `speed_correction`
+  - numeric controls: `max_distance`, `min_distance`, `min_speed`, `no_target_delay`, `trigger_count`, `min_snr`, `snr_threshold`, `speed_correction`
   - select control: `detection_direction` (`away`, `approach`, `both`)
   - runtime note: `min_snr` only accepts `0` or `3..8`; runtime values `1` and `2` are coerced to `0`
+  - runtime note: `snr_threshold` accepts `0..64` and is mapped to the native LD2451 `min_snr` scale (`0`, `3..8`)
 
 UART validation is enforced for:
 
@@ -161,10 +162,20 @@ ld2451:
       name: "LD2451 Trigger Count"
     min_snr:
       name: "LD2451 Min SNR"
+    snr_threshold:
+      name: "LD2451 SNR Threshold"
     speed_correction:
       name: "LD2451 Speed Correction"
     detection_direction:
       name: "LD2451 Detection Direction"
+```
+
+## Fast Host Tests
+
+Run pure C++ host tests without firmware compile:
+
+```bash
+components/ld2451/tests_host/run_host_tests.sh
 ```
 
 ## Debug Logging

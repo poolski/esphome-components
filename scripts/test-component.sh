@@ -37,6 +37,11 @@ for extra in "${component_dir}/tests"/*.yaml; do
   fi
 done
 
+if [[ -x "${component_dir}/tests_host/run_host_tests.sh" ]]; then
+  echo "==> [${component_dir}] host unit tests"
+  "${component_dir}/tests_host/run_host_tests.sh"
+fi
+
 echo "==> [${component_dir}] esphome compile"
 esphome compile "${validate_file}"
 
