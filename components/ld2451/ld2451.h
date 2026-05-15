@@ -4,57 +4,18 @@
 #include <vector>
 
 #include "esphome/components/binary_sensor/binary_sensor.h"
-#include "esphome/components/number/number.h"
-#include "esphome/components/select/select.h"
 #include "esphome/components/sensor/sensor.h"
 #include "esphome/components/text_sensor/text_sensor.h"
 #include "esphome/components/uart/uart.h"
 #include "esphome/core/component.h"
 
+#include "control_entities.h"
+#include "types.h"
+
 namespace esphome {
 namespace ld2451 {
 
 class LD2451Component;
-
-class LD2451MaxDistanceNumber : public number::Number, public Parented<LD2451Component> {
- public:
-  void control(float value) override;
-};
-
-class LD2451MinDistanceNumber : public number::Number, public Parented<LD2451Component> {
- public:
-  void control(float value) override;
-};
-
-class LD2451MinSpeedNumber : public number::Number, public Parented<LD2451Component> {
- public:
-  void control(float value) override;
-};
-
-class LD2451NoTargetDelayNumber : public number::Number, public Parented<LD2451Component> {
- public:
-  void control(float value) override;
-};
-
-class LD2451TriggerCountNumber : public number::Number, public Parented<LD2451Component> {
- public:
-  void control(float value) override;
-};
-
-class LD2451MinSnrNumber : public number::Number, public Parented<LD2451Component> {
- public:
-  void control(float value) override;
-};
-
-class LD2451SpeedCorrectionNumber : public number::Number, public Parented<LD2451Component> {
- public:
-  void control(float value) override;
-};
-
-class LD2451DetectionDirectionSelect : public select::Select, public Parented<LD2451Component> {
- public:
-  void control(const std::string &value) override;
-};
 
 class LD2451Component : public Component, public uart::UARTDevice {
  public:
@@ -71,43 +32,15 @@ class LD2451Component : public Component, public uart::UARTDevice {
   void set_snr_sensor(sensor::Sensor *sensor) { this->snr_sensor_ = sensor; }
   void set_direction_text_sensor(text_sensor::TextSensor *sensor) { this->direction_text_sensor_ = sensor; }
 
-  void set_max_distance(int value) {
-    this->desired_.max_distance = static_cast<uint8_t>(value);
-    if (this->desired_.min_distance > this->desired_.max_distance) {
-      this->desired_.min_distance = this->desired_.max_distance;
-    }
-    this->config_dirty_ = true;
-  }
-  void set_min_distance(int value) {
-    this->desired_.min_distance = static_cast<uint8_t>(value);
-    if (this->desired_.min_distance > this->desired_.max_distance) {
-      this->desired_.max_distance = this->desired_.min_distance;
-      this->config_dirty_ = true;
-    }
-  }
-  void set_min_speed(int value) {
-    this->desired_.min_speed = static_cast<uint8_t>(value);
-    this->config_dirty_ = true;
-  }
-  void set_detection_direction(int value) {
-    this->desired_.detection_direction = static_cast<uint8_t>(value);
-    this->config_dirty_ = true;
-  }
-  void set_no_target_delay(int value) {
-    this->desired_.no_target_delay = static_cast<uint8_t>(value);
-    this->config_dirty_ = true;
-  }
-  void set_trigger_count(int value) {
-    this->desired_.trigger_count = static_cast<uint8_t>(value);
-    this->config_dirty_ = true;
-  }
-  void set_min_snr(int value) {
-    this->desired_.min_snr = static_cast<uint8_t>(value);
-    this->config_dirty_ = true;
-  }
-  void set_speed_correction(float value) {
-    this->desired_.speed_correction = value;
-  }
+  void set_max_distance(int value);
+  void set_min_distance(int value);
+  void set_min_speed(int value);
+  void set_detection_direction(int value);
+  void set_no_target_delay(int value);
+  void set_trigger_count(int value);
+  void set_min_snr(int value);
+  void set_speed_correction(float value);
+  void set_app_snr_threshold(int value);
   void set_detection_direction_option(const std::string &value) {
     this->set_detection_direction(this->detection_direction_from_option_(value));
   }
@@ -119,6 +52,7 @@ class LD2451Component : public Component, public uart::UARTDevice {
   uint8_t get_trigger_count() const { return this->desired_.trigger_count; }
   uint8_t get_min_snr() const { return this->desired_.min_snr; }
   float get_speed_correction() const { return this->desired_.speed_correction; }
+  uint8_t get_app_snr_threshold() const { return this->app_snr_threshold_; }
   const char *get_detection_direction_option() const {
     return this->detection_direction_to_option_(this->desired_.detection_direction);
   }
@@ -129,29 +63,11 @@ class LD2451Component : public Component, public uart::UARTDevice {
   void set_no_target_delay_number(LD2451NoTargetDelayNumber *n) { this->no_target_delay_number_ = n; }
   void set_trigger_count_number(LD2451TriggerCountNumber *n) { this->trigger_count_number_ = n; }
   void set_min_snr_number(LD2451MinSnrNumber *n) { this->min_snr_number_ = n; }
+  void set_app_snr_threshold_number(LD2451AppSnrThresholdNumber *n) { this->app_snr_threshold_number_ = n; }
   void set_speed_correction_number(LD2451SpeedCorrectionNumber *n) { this->speed_correction_number_ = n; }
   void set_detection_direction_select(LD2451DetectionDirectionSelect *s) { this->detection_direction_select_ = s; }
 
  protected:
-  struct RuntimeConfig {
-    uint8_t max_distance{100};
-    uint8_t min_distance{0};
-    uint8_t min_speed{0};
-    uint8_t detection_direction{2};
-    uint8_t no_target_delay{0};
-    uint8_t trigger_count{1};
-    uint8_t min_snr{0};
-    float speed_correction{1.0f};
-  };
-
-  struct ParsedTarget {
-    int angle;
-    uint8_t distance;
-    uint8_t direction;
-    uint8_t speed;
-    uint8_t snr;
-  };
-
   bool extract_frame_();
   bool apply_runtime_config_();
   bool enter_config_mode_();
@@ -184,6 +100,7 @@ class LD2451Component : public Component, public uart::UARTDevice {
   uint32_t last_config_attempt_ms_{0};
   RuntimeConfig desired_{};
   RuntimeConfig applied_{};
+  uint8_t app_snr_threshold_{0};
 
   sensor::Sensor *target_count_sensor_{nullptr};
   binary_sensor::BinarySensor *alarm_binary_sensor_{nullptr};
@@ -199,6 +116,7 @@ class LD2451Component : public Component, public uart::UARTDevice {
   LD2451NoTargetDelayNumber *no_target_delay_number_{nullptr};
   LD2451TriggerCountNumber *trigger_count_number_{nullptr};
   LD2451MinSnrNumber *min_snr_number_{nullptr};
+  LD2451AppSnrThresholdNumber *app_snr_threshold_number_{nullptr};
   LD2451SpeedCorrectionNumber *speed_correction_number_{nullptr};
   LD2451DetectionDirectionSelect *detection_direction_select_{nullptr};
 };
