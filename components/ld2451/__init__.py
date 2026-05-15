@@ -22,7 +22,7 @@ CONF_DETECTION_DIRECTION = "detection_direction"
 CONF_NO_TARGET_DELAY = "no_target_delay"
 CONF_TRIGGER_COUNT = "trigger_count"
 CONF_MIN_SNR = "min_snr"
-CONF_APP_SNR_THRESHOLD = "app_snr_threshold"
+CONF_SNR_THRESHOLD = "snr_threshold"
 CONF_SPEED_CORRECTION = "speed_correction"
 CONF_CONTROLS = "controls"
 
@@ -52,8 +52,8 @@ LD2451TriggerCountNumber = ld2451_ns.class_(
 LD2451MinSnrNumber = ld2451_ns.class_(
     "LD2451MinSnrNumber", number.Number, cg.Parented.template(LD2451Component)
 )
-LD2451AppSnrThresholdNumber = ld2451_ns.class_(
-    "LD2451AppSnrThresholdNumber", number.Number, cg.Parented.template(LD2451Component)
+LD2451SnrThresholdNumber = ld2451_ns.class_(
+    "LD2451SnrThresholdNumber", number.Number, cg.Parented.template(LD2451Component)
 )
 LD2451SpeedCorrectionNumber = ld2451_ns.class_(
     "LD2451SpeedCorrectionNumber", number.Number, cg.Parented.template(LD2451Component)
@@ -115,8 +115,8 @@ CONFIG_SCHEMA = cv.All(
                         entity_category=ENTITY_CATEGORY_CONFIG,
                         icon="mdi:signal",
                     ),
-                    cv.Optional(CONF_APP_SNR_THRESHOLD): number.number_schema(
-                        LD2451AppSnrThresholdNumber,
+                    cv.Optional(CONF_SNR_THRESHOLD): number.number_schema(
+                        LD2451SnrThresholdNumber,
                         entity_category=ENTITY_CATEGORY_CONFIG,
                         icon="mdi:signal-distance-variant",
                     ),
@@ -233,10 +233,10 @@ async def to_code(config):
             await cg.register_parented(n, config[CONF_ID])
             cg.add(var.set_min_snr_number(n))
 
-        if app_snr_config := controls_config.get(CONF_APP_SNR_THRESHOLD):
-            n = await number.new_number(app_snr_config, min_value=0, max_value=64, step=1)
+        if snr_threshold_config := controls_config.get(CONF_SNR_THRESHOLD):
+            n = await number.new_number(snr_threshold_config, min_value=0, max_value=64, step=1)
             await cg.register_parented(n, config[CONF_ID])
-            cg.add(var.set_app_snr_threshold_number(n))
+            cg.add(var.set_snr_threshold_number(n))
 
         if speed_correction_config := controls_config.get(CONF_SPEED_CORRECTION):
             n = await number.new_number(speed_correction_config, min_value=0.1, max_value=4.0, step=0.01)

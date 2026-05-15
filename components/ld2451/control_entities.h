@@ -41,7 +41,7 @@ class LD2451MinSnrNumber : public number::Number, public Parented<LD2451Componen
   void control(float value) override;
 };
 
-class LD2451AppSnrThresholdNumber : public number::Number, public Parented<LD2451Component> {
+class LD2451SnrThresholdNumber : public number::Number, public Parented<LD2451Component> {
  public:
   void control(float value) override;
 };

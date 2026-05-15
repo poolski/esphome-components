@@ -64,12 +64,12 @@ void LD2451MinSnrNumber::control(float value) {
   this->publish_state(this->parent_->get_min_snr());
 }
 
-void LD2451AppSnrThresholdNumber::control(float value) {
+void LD2451SnrThresholdNumber::control(float value) {
   if (this->parent_ == nullptr) {
     return;
   }
-  this->parent_->set_app_snr_threshold(static_cast<int>(lroundf(value)));
-  this->publish_state(this->parent_->get_app_snr_threshold());
+  this->parent_->set_snr_threshold(static_cast<int>(lroundf(value)));
+  this->publish_state(this->parent_->get_snr_threshold());
 }
 
 void LD2451SpeedCorrectionNumber::control(float value) {

@@ -10,6 +10,7 @@
 #include "esphome/core/component.h"
 
 #include "control_entities.h"
+#include "ack_codec.h"
 #include "types.h"
 
 namespace esphome {
@@ -40,7 +41,7 @@ class LD2451Component : public Component, public uart::UARTDevice {
   void set_trigger_count(int value);
   void set_min_snr(int value);
   void set_speed_correction(float value);
-  void set_app_snr_threshold(int value);
+  void set_snr_threshold(int value);
   void set_detection_direction_option(const std::string &value) {
     this->set_detection_direction(this->detection_direction_from_option_(value));
   }
@@ -52,7 +53,7 @@ class LD2451Component : public Component, public uart::UARTDevice {
   uint8_t get_trigger_count() const { return this->desired_.trigger_count; }
   uint8_t get_min_snr() const { return this->desired_.min_snr; }
   float get_speed_correction() const { return this->desired_.speed_correction; }
-  uint8_t get_app_snr_threshold() const { return this->app_snr_threshold_; }
+  uint8_t get_snr_threshold() const { return this->snr_threshold_; }
   const char *get_detection_direction_option() const {
     return this->detection_direction_to_option_(this->desired_.detection_direction);
   }
@@ -63,7 +64,7 @@ class LD2451Component : public Component, public uart::UARTDevice {
   void set_no_target_delay_number(LD2451NoTargetDelayNumber *n) { this->no_target_delay_number_ = n; }
   void set_trigger_count_number(LD2451TriggerCountNumber *n) { this->trigger_count_number_ = n; }
   void set_min_snr_number(LD2451MinSnrNumber *n) { this->min_snr_number_ = n; }
-  void set_app_snr_threshold_number(LD2451AppSnrThresholdNumber *n) { this->app_snr_threshold_number_ = n; }
+  void set_snr_threshold_number(LD2451SnrThresholdNumber *n) { this->snr_threshold_number_ = n; }
   void set_speed_correction_number(LD2451SpeedCorrectionNumber *n) { this->speed_correction_number_ = n; }
   void set_detection_direction_select(LD2451DetectionDirectionSelect *s) { this->detection_direction_select_ = s; }
 
@@ -72,6 +73,7 @@ class LD2451Component : public Component, public uart::UARTDevice {
   bool apply_runtime_config_();
   bool enter_config_mode_();
   bool exit_config_mode_();
+  bool read_firmware_version_(FirmwareVersionInfo &out);
   bool write_target_detection_params_();
   bool write_sensitivity_params_();
   void refresh_runtime_entities_();
@@ -100,7 +102,7 @@ class LD2451Component : public Component, public uart::UARTDevice {
   uint32_t last_config_attempt_ms_{0};
   RuntimeConfig desired_{};
   RuntimeConfig applied_{};
-  uint8_t app_snr_threshold_{0};
+  uint8_t snr_threshold_{0};
 
   sensor::Sensor *target_count_sensor_{nullptr};
   binary_sensor::BinarySensor *alarm_binary_sensor_{nullptr};
@@ -116,7 +118,7 @@ class LD2451Component : public Component, public uart::UARTDevice {
   LD2451NoTargetDelayNumber *no_target_delay_number_{nullptr};
   LD2451TriggerCountNumber *trigger_count_number_{nullptr};
   LD2451MinSnrNumber *min_snr_number_{nullptr};
-  LD2451AppSnrThresholdNumber *app_snr_threshold_number_{nullptr};
+  LD2451SnrThresholdNumber *snr_threshold_number_{nullptr};
   LD2451SpeedCorrectionNumber *speed_correction_number_{nullptr};
   LD2451DetectionDirectionSelect *detection_direction_select_{nullptr};
 };

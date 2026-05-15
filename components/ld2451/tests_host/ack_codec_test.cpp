@@ -1,4 +1,5 @@
 #include <cassert>
+#include <string>
 #include <vector>
 
 #include "../ack_codec.h"
@@ -14,6 +15,18 @@ int main() {
 
   const std::vector<uint8_t> too_short = {0x02, 0x01, 0x00};
   assert(!decode_ack(0x0002, too_short, 64).ok);
+
+  FirmwareVersionInfo fw{};
+  const std::vector<uint8_t> fw_payload = {0x51, 0x24, 0x01, 0x01, 0x10, 0x15, 0x05, 0x24};
+  assert(decode_firmware_version(fw_payload, fw));
+  assert(fw.fw_type == 0x2451);
+  assert(fw.major == 0x0101);
+  assert(fw.minor == 0x24051510);
+
+  const std::vector<uint8_t> fw_short = {0x51, 0x24, 0x01};
+  assert(!decode_firmware_version(fw_short, fw));
+
+  assert(format_firmware_version(fw) == "V1.01.24051510");
 
   return 0;
 }

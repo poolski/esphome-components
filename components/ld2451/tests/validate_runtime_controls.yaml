@@ -53,7 +53,7 @@ ld2451:
       name: "LD2451 Trigger Count"
     min_snr:
       name: "LD2451 Min SNR"
-    app_snr_threshold:
+    snr_threshold:
       name: "LD2451 App SNR Threshold"
     speed_correction:
       name: "LD2451 Speed Correction"
