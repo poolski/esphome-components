@@ -14,9 +14,17 @@ int main() {
   target.distance = 7;
   target.speed = 20;
 
+  target.alarm = true;
   const TargetOutput out = compute_target_output(cfg, target);
   assert(out.publish);
+  assert(out.alarm == true);
   assert(out.corrected_speed > 21.9f && out.corrected_speed < 22.1f);
+
+  // alarm=false propagates even when target is in range
+  target.alarm = false;
+  const TargetOutput no_alarm_out = compute_target_output(cfg, target);
+  assert(no_alarm_out.publish);
+  assert(no_alarm_out.alarm == false);
 
   target.distance = 20;
   assert(!compute_target_output(cfg, target).publish);

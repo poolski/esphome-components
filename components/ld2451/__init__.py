@@ -117,7 +117,7 @@ CONFIG_SCHEMA = (
                         entity_category=ENTITY_CATEGORY_CONFIG,
                         icon="mdi:timer-outline",
                     ),
-                    # Consecutive detections (1..10) required before the device reports a target. Higher = less false triggers.
+                    # Consecutive detections (1..10) required before the device sets its alarm flag. Only vehicle_detected is gated on this.
                     cv.Optional(CONF_TRIGGER_COUNT): number.number_schema(
                         LD2451TriggerCountNumber,
                         entity_category=ENTITY_CATEGORY_CONFIG,

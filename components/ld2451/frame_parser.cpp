@@ -16,6 +16,7 @@ bool parse_payload(const std::vector<uint8_t> &payload, ParsedFrame &frame) {
     return false;
   }
 
+  frame.first_target.alarm = (payload[1] == 0x01);
   frame.first_target.angle = static_cast<int>(payload[2]) - 0x80;
   frame.first_target.distance = payload[3];
   frame.first_target.direction = payload[4];

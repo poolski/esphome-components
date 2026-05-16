@@ -596,6 +596,7 @@ bool LD2451Component::parse_payload_(const std::vector<uint8_t> &payload, uint8_
     return false;
   }
 
+  first_target.alarm = (payload[1] == 0x01);
   first_target.angle = static_cast<int>(payload[2]) - 0x80;
   first_target.distance = payload[3];
   first_target.direction = payload[4];
@@ -658,8 +659,10 @@ void LD2451Component::publish_frame_(uint8_t target_count, const ParsedTarget &f
   this->detection_active_ = true;
   this->idle_published_ = false;
 
+  // vehicle_detected fires only when the device alarm flag is set (trigger_count met).
+  // Sensor values (distance, speed, etc.) are published for any qualifying target.
   if (this->vehicle_detected_binary_sensor_ != nullptr) {
-    this->vehicle_detected_binary_sensor_->publish_state(true);
+    this->vehicle_detected_binary_sensor_->publish_state(output.alarm);
   }
 
   if (this->angle_sensor_ != nullptr) {

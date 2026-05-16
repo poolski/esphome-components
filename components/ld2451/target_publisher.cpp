@@ -8,6 +8,7 @@ TargetOutput compute_target_output(const RuntimeConfig &cfg, const ParsedTarget 
   }
   TargetOutput out;
   out.publish = true;
+  out.alarm = target.alarm;
   out.corrected_speed = static_cast<float>(target.speed) * cfg.speed_correction;
   return out;
 }

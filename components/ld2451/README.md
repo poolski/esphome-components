@@ -96,7 +96,7 @@ ld2451:
 | `id`               | component ID    | yes      | -                                        |
 | `uart_id`          | UART ID         | yes      | -                                        |
 | `target_count`     | `sensor`        | no       | Number of targets in the current frame   |
-| `vehicle_detected` | `binary_sensor` | no       | Trigger-friendly detection state         |
+| `vehicle_detected` | `binary_sensor` | no       | `ON` when device alarm fires (trigger_count met); `OFF` after no_target_delay |
 | `angle`            | `sensor`        | no       | Degrees; negative = left of sensor axis  |
 | `distance`         | `sensor`        | no       | Metres to closest qualifying target      |
 | `speed`            | `sensor`        | no       | km/h (after `speed_correction`)          |
@@ -115,7 +115,7 @@ All device-stored parameters are written to flash and survive power cycles.
 | `min_speed`           | `0..120` km/h                | `0`     | Device        | Minimum speed a target must exceed to be reported. Slower targets are ignored.                                            |
 | `detection_direction` | `away` / `approach` / `both` | `both`  | Device        | `approach`: same-direction vehicles only. `away`: opposite-direction vehicles only. `both`: all directions.               |
 | `no_target_delay`     | `0..255` s                   | `0`     | Device        | How long after the last detection the device continues reporting the target. Resets if a new detection occurs within this window. |
-| `trigger_count`       | `1..10`                      | `1`     | Device        | Number of consecutive detections required before the device reports a target. Higher values reduce false triggers.         |
+| `trigger_count`       | `1..10`                      | `1`     | Device        | Consecutive detections required before the device sets its alarm flag. Only `vehicle_detected` is gated on this; sensor data (distance, speed, etc.) is published as soon as any qualifying target appears. |
 | `min_snr`             | `0` or `3..8`                | `0`     | Device        | `0` = device default (equivalent to 4). `3..8`: lower = more sensitive, easier to trigger; higher = less sensitive, harder. Not recommended to change unless needed. |
 | `snr_threshold`       | `0..64`                      | `0`     | Device        | Alternative app-scale SNR input (0..64) that maps to native `min_snr` levels (`0`, `3..8`). Use instead of `min_snr`.    |
 | `speed_correction`    | `0.1..4.0`                   | `1.0`   | Software only | Multiplier applied to the published speed value. Does not affect the device.                                              |
@@ -139,7 +139,8 @@ UART validation is enforced for:
 | Topic              | Detail                                                                                                                       |
 | ------------------ | ---------------------------------------------------------------------------------------------------------------------------- |
 | Target publishing  | Current implementation publishes only the first target details (`target 1`) per frame                                        |
-| No-target behavior | After `no_target_delay`, target fields reset to `0`, direction resets to `None`, and `vehicle_detected` resets to `OFF`     |
+| No-target behavior | After `no_target_delay`, target fields reset to `0`, direction resets to `None`, and `vehicle_detected` resets to `OFF`      |
+| Trigger count      | `vehicle_detected` is gated on the device alarm flag (set only after `trigger_count` consecutive detections). Distance, speed, angle, and SNR are published for any qualifying target, even before the alarm fires. |
 | Distance filtering | `min_distance` is software-side only: targets outside `min_distance..max_distance` are filtered from published target fields |
 | Speed correction   | `speed_correction` is software-side only: published speed is multiplied by this value                                        |
 

@@ -10,6 +10,9 @@ namespace esphome::ld2451 {
 struct TargetOutput {
   bool publish{false};
   float corrected_speed{0.0f};
+  // Mirrors ParsedTarget::alarm. True only when trigger_count consecutive detections were met.
+  // Use this (not publish) to drive vehicle_detected.
+  bool alarm{false};
 };
 
 struct IdleResetOutput {

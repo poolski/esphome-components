@@ -29,6 +29,9 @@ struct ParsedTarget {
   uint8_t direction{0};
   uint8_t speed{0};
   uint8_t snr{0};
+  // True when the device alarm flag (payload[1]) is set, meaning trigger_count consecutive
+  // detections have been met. Gates vehicle_detected; sensor data is published regardless.
+  bool alarm{false};
 };
 
 }  // namespace esphome::ld2451
