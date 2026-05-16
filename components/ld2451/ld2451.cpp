@@ -610,7 +610,10 @@ bool LD2451Component::parse_payload_(const std::vector<uint8_t> &payload, uint8_
 
 void LD2451Component::publish_frame_(uint8_t target_count, const ParsedTarget &first_target, bool has_target) {
   if (this->target_count_sensor_ != nullptr) {
-    this->target_count_sensor_->publish_state(target_count);
+    const float new_count = static_cast<float>(target_count);
+    if (!this->target_count_sensor_->has_state() || this->target_count_sensor_->state != new_count) {
+      this->target_count_sensor_->publish_state(new_count);
+    }
   }
 
   const uint32_t now = millis();
