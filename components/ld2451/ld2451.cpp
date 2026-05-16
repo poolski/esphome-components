@@ -304,7 +304,9 @@ bool LD2451Component::enter_config_mode_() {
   return this->send_command_wait_ack_(0x00FF, value);
 }
 
-bool LD2451Component::exit_config_mode_() { return this->send_command_wait_ack_(0x00FE, {}); }
+bool LD2451Component::exit_config_mode_() {
+  return this->send_command_wait_ack_(0x00FE, {}, nullptr, EXIT_CONFIG_ACK_TIMEOUT_MS);
+}
 
 bool LD2451Component::read_firmware_version_(FirmwareVersionInfo &out) {
   std::vector<uint8_t> ret;
@@ -343,13 +345,17 @@ bool LD2451Component::read_runtime_config_(RuntimeConfig &out) {
     ok = false;
   }
 
-  if (!this->exit_config_mode_()) {
-    ESP_LOGW(TAG, "Runtime config read failed at step: exit_config_mode");
-    return false;
+  const bool exit_ok = this->exit_config_mode_();
+  if (!exit_ok) {
+    ESP_LOGW(TAG, "Runtime config read: exit_config_mode failed (device likely auto-exited)");
   }
 
   if (!ok) {
     return false;
+  }
+
+  if (!exit_ok) {
+    ESP_LOGW(TAG, "Runtime config read succeeded despite exit_config_mode failure");
   }
 
   out.max_distance = target_ret[0];
