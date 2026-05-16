@@ -121,6 +121,14 @@ ld2451:
 | Runtime notes    | `min_snr` only accepts `0` or `3..8`; runtime values `1` and `2` are coerced to `0`                                             |
 | Runtime notes    | `snr_threshold` accepts `0..64` and is mapped to the native LD2451 `min_snr` scale (`0`, `3..8`)                                |
 
+## Runtime Config Sync
+
+- Device is source of truth.
+- Component reads at boot.
+- Component polls every 5 seconds.
+- Post-write readback publishes actual values.
+- Bluetooth-side changes reflected within 5 seconds.
+
 UART validation is enforced for:
 
 | Validation     | Requirement |
