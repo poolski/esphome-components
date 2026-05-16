@@ -54,6 +54,24 @@ static std::string runtime_config_summary(const RuntimeConfig &config) {
   return summary;
 }
 
+static std::string format_bytes(const std::vector<uint8_t> &bytes) {
+  if (bytes.empty()) {
+    return "<empty>";
+  }
+
+  std::string out;
+  out.reserve(bytes.size() * 3);
+  char buf[4];
+  for (size_t i = 0; i < bytes.size(); i++) {
+    if (i > 0) {
+      out += ' ';
+    }
+    std::snprintf(buf, sizeof(buf), "%02X", static_cast<unsigned int>(bytes[i]));
+    out += buf;
+  }
+  return out;
+}
+
 void LD2451Component::set_snr_threshold(int value) {
   if (value < 0) {
     value = 0;
@@ -340,6 +358,12 @@ bool LD2451Component::read_runtime_config_(RuntimeConfig &out) {
   out.no_target_delay = target_ret[3];
   out.trigger_count = sensitivity_ret[0] == 0 ? 1 : sensitivity_ret[0];
   out.min_snr = sensitivity_ret[1];
+  const std::string target_bytes = format_bytes(target_ret);
+  const std::string sensitivity_bytes = format_bytes(sensitivity_ret);
+  const std::string readback_summary = runtime_config_summary(out);
+  ESP_LOGD(TAG, "Runtime config readback target_detection_params: bytes=[%s]", target_bytes.c_str());
+  ESP_LOGD(TAG, "Runtime config readback sensitivity_params: bytes=[%s]", sensitivity_bytes.c_str());
+  ESP_LOGD(TAG, "Runtime config readback decoded: %s", readback_summary.c_str());
   return true;
 }
 
@@ -350,6 +374,10 @@ bool LD2451Component::sync_runtime_config_from_device_() {
   }
 
   const ReconcileResult reconciled = reconcile_from_device(this->desired_, readback);
+  const std::string readback_summary = runtime_config_summary(readback);
+  const std::string reconciled_summary = runtime_config_summary(reconciled.config);
+  ESP_LOGD(TAG, "Runtime config sync readback result: changed=%s readback={%s} reconciled={%s}",
+           reconciled.changed ? "true" : "false", readback_summary.c_str(), reconciled_summary.c_str());
   this->desired_ = reconciled.config;
   this->applied_ = reconciled.config;
   this->config_dirty_ = false;
@@ -369,7 +397,12 @@ bool LD2451Component::write_target_detection_params_() {
       this->desired_.min_speed,
       this->desired_.no_target_delay,
   };
-  return this->send_command_wait_ack_(0x0002, value);
+  const bool ok = this->send_command_wait_ack_(0x0002, value);
+  const std::string value_bytes = format_bytes(value);
+  const std::string desired_summary = runtime_config_summary(this->desired_);
+  ESP_LOGD(TAG, "Runtime config write target_detection_params result: ok=%s bytes=[%s] desired={%s}",
+           ok ? "true" : "false", value_bytes.c_str(), desired_summary.c_str());
+  return ok;
 }
 
 bool LD2451Component::write_sensitivity_params_() {
@@ -379,7 +412,12 @@ bool LD2451Component::write_sensitivity_params_() {
       0x00,
       0x00,
   };
-  return this->send_command_wait_ack_(0x0003, value);
+  const bool ok = this->send_command_wait_ack_(0x0003, value);
+  const std::string value_bytes = format_bytes(value);
+  const std::string desired_summary = runtime_config_summary(this->desired_);
+  ESP_LOGD(TAG, "Runtime config write sensitivity_params result: ok=%s bytes=[%s] desired={%s}",
+           ok ? "true" : "false", value_bytes.c_str(), desired_summary.c_str());
+  return ok;
 }
 
 void LD2451Component::refresh_runtime_entities_() {
@@ -468,9 +506,12 @@ bool LD2451Component::apply_runtime_config_() {
   }
 
   const std::string readback_summary = runtime_config_summary(readback);
+  const std::string desired_summary = runtime_config_summary(this->desired_);
+  const bool readback_matches = runtime_config_readback_fields_equal(this->desired_, readback);
+  ESP_LOGD(TAG, "Runtime config post-write readback result: matches=%s desired={%s} readback={%s}",
+           readback_matches ? "true" : "false", desired_summary.c_str(), readback_summary.c_str());
   ESP_LOGI(TAG, "Runtime config post-write readback: %s", readback_summary.c_str());
-  if (!runtime_config_readback_fields_equal(this->desired_, readback)) {
-    const std::string desired_summary = runtime_config_summary(this->desired_);
+  if (!readback_matches) {
     ESP_LOGW(TAG,
              "Runtime config post-write mismatch (readback fields only): desired={%s} readback={%s}",
              desired_summary.c_str(),
