@@ -77,14 +77,12 @@ class LD2451Component : public Component, public uart::UARTDevice {
   bool exit_config_mode_();
   bool read_firmware_version_(FirmwareVersionInfo &out);
   bool read_runtime_config_(RuntimeConfig &out);
-  bool sync_runtime_config_from_device_();
   bool write_target_detection_params_();
   bool write_sensitivity_params_();
   void mark_config_dirty_if_changed_(const RuntimeConfig &before);
   void refresh_runtime_entities_();
   static constexpr uint32_t COMMAND_ACK_TIMEOUT_MS = 400;
   static constexpr uint32_t EXIT_CONFIG_ACK_TIMEOUT_MS = 1000;
-  static constexpr uint32_t SYNC_INTERVAL_MS = 5000;
   static constexpr uint16_t MAX_ACK_PAYLOAD_LEN = 64;
   static uint8_t detection_direction_from_option_(const std::string &value);
   static const char *detection_direction_to_option_(uint8_t value);
@@ -102,12 +100,8 @@ class LD2451Component : public Component, public uart::UARTDevice {
   uint32_t last_rx_activity_log_ms_{0};
   bool config_dirty_{false};
   bool config_in_flight_{false};
-  bool force_sync_{true};
-  bool sync_in_flight_{false};
   uint32_t last_config_attempt_ms_{0};
-  uint32_t last_sync_ms_{0};
   uint8_t config_apply_failures_{0};
-  uint8_t sync_failures_{0};
   RuntimeConfig desired_{};
   RuntimeConfig applied_{};
   uint8_t snr_threshold_{0};

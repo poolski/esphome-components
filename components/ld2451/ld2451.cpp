@@ -6,7 +6,6 @@
 #include "ack_codec.h"
 #include "ack_stream.h"
 #include "config_state.h"
-#include "runtime_sync.h"
 #include "target_publisher.h"
 #include "control_entities.h"
 #include "esphome/core/log.h"
@@ -84,8 +83,6 @@ void LD2451Component::set_snr_threshold(int value) {
 
 void LD2451Component::setup() {
   this->rx_buffer_.reserve(256);
-  this->applied_ = this->desired_;
-  this->force_sync_ = true;
   FirmwareVersionInfo fw{};
   if (this->read_firmware_version_(fw)) {
     const std::string fw_version = format_firmware_version(fw);
@@ -94,6 +91,21 @@ void LD2451Component::setup() {
   } else {
     ESP_LOGI(TAG, "Firmware: unavailable");
   }
+
+  // Read device config once on boot as source of truth.
+  RuntimeConfig device_config{};
+  if (this->read_runtime_config_(device_config)) {
+    normalize_distance_window(device_config);
+    device_config.min_snr = coerce_native_min_snr(device_config.min_snr);
+    this->desired_ = device_config;
+    this->applied_ = device_config;
+    ESP_LOGD(TAG, "Boot config sync: device is source of truth: %s",
+             runtime_config_summary(this->desired_).c_str());
+  } else {
+    this->applied_ = this->desired_;
+    ESP_LOGW(TAG, "Boot config sync failed; using compile-time defaults");
+  }
+
   this->refresh_runtime_entities_();
   const IdleResetOutput reset = build_idle_reset_output();
   if (this->angle_sensor_ != nullptr) {
@@ -143,7 +155,6 @@ void LD2451Component::loop() {
       this->config_in_flight_ = true;
       bool ok = this->apply_runtime_config_();
       this->config_in_flight_ = false;
-      this->force_sync_ = true;
       if (!ok) {
         this->config_apply_failures_++;
         ESP_LOGW(TAG, "Runtime config apply failed (attempt=%u); keeping previous applied settings",
@@ -153,20 +164,7 @@ void LD2451Component::loop() {
     }
   }
 
-  if (should_run_sync(this->force_sync_, this->sync_in_flight_ || this->config_in_flight_ || this->config_dirty_, now,
-                      this->last_sync_ms_, SYNC_INTERVAL_MS)) {
-    this->force_sync_ = false;
-    this->last_sync_ms_ = now;
-    this->sync_in_flight_ = true;
-    const bool ok = this->sync_runtime_config_from_device_();
-    this->sync_in_flight_ = false;
-    if (!ok) {
-      this->sync_failures_++;
-      ESP_LOGW(TAG, "Runtime config sync failed (attempt=%u)", static_cast<unsigned int>(this->sync_failures_));
-    } else {
-      this->sync_failures_ = 0;
-    }
-  }
+
 }
 
 void LD2451Component::dump_config() {
@@ -370,29 +368,6 @@ bool LD2451Component::read_runtime_config_(RuntimeConfig &out) {
   ESP_LOGD(TAG, "Runtime config readback target_detection_params: bytes=[%s]", target_bytes.c_str());
   ESP_LOGD(TAG, "Runtime config readback sensitivity_params: bytes=[%s]", sensitivity_bytes.c_str());
   ESP_LOGD(TAG, "Runtime config readback decoded: %s", readback_summary.c_str());
-  return true;
-}
-
-bool LD2451Component::sync_runtime_config_from_device_() {
-  RuntimeConfig readback{};
-  if (!this->read_runtime_config_(readback)) {
-    return false;
-  }
-
-  const ReconcileResult reconciled = reconcile_from_device(this->desired_, readback);
-  const std::string readback_summary = runtime_config_summary(readback);
-  const std::string reconciled_summary = runtime_config_summary(reconciled.config);
-  ESP_LOGD(TAG, "Runtime config sync readback result: changed=%s readback={%s} reconciled={%s}",
-           reconciled.changed ? "true" : "false", readback_summary.c_str(), reconciled_summary.c_str());
-  this->desired_ = reconciled.config;
-  this->applied_ = reconciled.config;
-  this->config_dirty_ = false;
-  this->config_apply_failures_ = 0;
-  this->force_sync_ = false;
-
-  if (reconciled.changed) {
-    this->refresh_runtime_entities_();
-  }
   return true;
 }
 

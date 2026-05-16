@@ -35,9 +35,3 @@ clang++ -std=c++17 -Wall -Wextra -pedantic \
   -Icomponents/ld2451 -o /tmp/ld2451-target-publisher-test
 /tmp/ld2451-target-publisher-test
 
-clang++ -std=c++17 -Wall -Wextra -pedantic \
-  components/ld2451/tests_host/runtime_sync_test.cpp \
-  components/ld2451/runtime_sync.cpp \
-  components/ld2451/config_state.cpp \
-  -Icomponents/ld2451 -o /tmp/ld2451-runtime-sync-test
-/tmp/ld2451-runtime-sync-test
