@@ -1,5 +1,6 @@
 #include "ld2451.h"
 
+#include <cstdio>
 #include <cstring>
 
 #include "ack_codec.h"
@@ -19,6 +20,38 @@ static const uint8_t DATA_HEADER[] = {0xF4, 0xF3, 0xF2, 0xF1};
 static const uint8_t DATA_TAIL[] = {0xF8, 0xF7, 0xF6, 0xF5};
 static const uint8_t CMD_HEADER[] = {0xFD, 0xFC, 0xFB, 0xFA};
 static const uint8_t CMD_TAIL[] = {0x04, 0x03, 0x02, 0x01};
+static const uint32_t POST_WRITE_READBACK_SETTLE_MS = 10;
+
+static const char *detection_direction_option(uint8_t value) {
+  switch (value) {
+    case 0:
+      return "away";
+    case 1:
+      return "approach";
+    default:
+      return "both";
+  }
+}
+
+static std::string runtime_config_summary(const RuntimeConfig &config) {
+  std::string summary;
+  summary.reserve(160);
+  summary += "max_distance=";
+  summary += std::to_string(config.max_distance);
+  summary += " detection_direction_raw=";
+  summary += std::to_string(config.detection_direction);
+  summary += " detection_direction_label=";
+  summary += detection_direction_option(config.detection_direction);
+  summary += " min_speed=";
+  summary += std::to_string(config.min_speed);
+  summary += " no_target_delay=";
+  summary += std::to_string(config.no_target_delay);
+  summary += " trigger_count=";
+  summary += std::to_string(config.trigger_count);
+  summary += " min_snr=";
+  summary += std::to_string(config.min_snr);
+  return summary;
+}
 
 void LD2451Component::set_snr_threshold(int value) {
   if (value < 0) {
@@ -464,11 +497,25 @@ bool LD2451Component::apply_runtime_config_() {
   this->config_dirty_ = false;
   this->config_apply_failures_ = 0;
   this->refresh_runtime_entities_();
-  ESP_LOGD(TAG,
-            "Applied runtime config: max_distance=%u min_speed=%u direction=%u no_target_delay=%u trigger_count=%u "
-           "min_snr=%u",
-           this->applied_.max_distance, this->applied_.min_speed, this->applied_.detection_direction,
-           this->applied_.no_target_delay, this->applied_.trigger_count, this->applied_.min_snr);
+
+  // Allow the device to settle after config-mode exit before opening a fresh readback session.
+  delay(POST_WRITE_READBACK_SETTLE_MS);
+
+  RuntimeConfig readback{};
+  if (!this->read_runtime_config_(readback)) {
+    ESP_LOGW(TAG, "Runtime config post-write readback failed");
+    return true;
+  }
+
+  const std::string readback_summary = runtime_config_summary(readback);
+  ESP_LOGI(TAG, "Runtime config post-write readback: %s", readback_summary.c_str());
+  if (!runtime_config_readback_fields_equal(this->desired_, readback)) {
+    const std::string desired_summary = runtime_config_summary(this->desired_);
+    ESP_LOGW(TAG,
+             "Runtime config post-write mismatch (readback fields only): desired={%s} readback={%s}",
+             desired_summary.c_str(),
+             readback_summary.c_str());
+  }
   return true;
 }
 

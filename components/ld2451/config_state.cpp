@@ -43,4 +43,10 @@ bool runtime_config_equal(const RuntimeConfig &a, const RuntimeConfig &b) {
          a.trigger_count == b.trigger_count && a.min_snr == b.min_snr && a.speed_correction == b.speed_correction;
 }
 
+bool runtime_config_readback_fields_equal(const RuntimeConfig &a, const RuntimeConfig &b) {
+  return a.max_distance == b.max_distance && a.detection_direction == b.detection_direction &&
+         a.min_speed == b.min_speed && a.no_target_delay == b.no_target_delay && a.trigger_count == b.trigger_count &&
+         a.min_snr == b.min_snr;
+}
+
 }  // namespace esphome::ld2451
