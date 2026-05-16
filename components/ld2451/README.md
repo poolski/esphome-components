@@ -91,43 +91,41 @@ ld2451:
 
 `ld2451:` supports:
 
-| Key                   | Type            | Required | Range/Options                | Notes                                          |
-| --------------------- | --------------- | -------- | ---------------------------- | ---------------------------------------------- |
-| `id`                  | component ID    | yes      | -                            | -                                              |
-| `uart_id`             | UART ID         | yes      | -                            | -                                              |
-| `max_distance`        | integer         | no       | `10..100`                    | radar-side + software upper cap, default `100` |
-| `min_distance`        | integer         | no       | `0..100`                     | software publish filter, default `0`           |
-| `min_speed`           | integer         | no       | `0..120`                     | radar-side                                     |
-| `detection_direction` | enum            | no       | `away` / `approach` / `both` | radar-side                                     |
-| `no_target_delay`     | integer         | no       | `0..255` seconds             | radar-side                                     |
-| `trigger_count`       | integer         | no       | `1..10`                      | radar-side sensitivity                         |
-| `min_snr`             | integer         | no       | `0` or `3..8`                | radar-side sensitivity                         |
-| `speed_correction`    | float           | no       | `0.1..4.0`                   | multiplier for published speed, default `1.0`  |
-| `target_count`        | `sensor`        | no       | -                            | -                                              |
-| `vehicle_detected`    | `binary_sensor` | no       | -                            | trigger-friendly detection state               |
-| `angle`               | `sensor`        | no       | -                            | -                                              |
-| `distance`            | `sensor`        | no       | -                            | -                                              |
-| `speed`               | `sensor`        | no       | -                            | -                                              |
-| `snr`                 | `sensor`        | no       | -                            | -                                              |
-| `direction`           | `text_sensor`   | no       | -                            | -                                              |
-| `controls`            | object          | no       | see below                    | runtime entities                               |
+| Key                | Type            | Required | Notes                                    |
+| ------------------ | --------------- | -------- | ---------------------------------------- |
+| `id`               | component ID    | yes      | -                                        |
+| `uart_id`          | UART ID         | yes      | -                                        |
+| `target_count`     | `sensor`        | no       | Number of targets in the current frame   |
+| `vehicle_detected` | `binary_sensor` | no       | Trigger-friendly detection state         |
+| `angle`            | `sensor`        | no       | Degrees; negative = left of sensor axis  |
+| `distance`         | `sensor`        | no       | Metres to closest qualifying target      |
+| `speed`            | `sensor`        | no       | km/h (after `speed_correction`)          |
+| `snr`              | `sensor`        | no       | Signal-to-noise ratio (0..255)           |
+| `direction`        | `text_sensor`   | no       | `Approaching`, `Moving away`, or `None`  |
+| `controls`         | object          | no       | Runtime-configurable entities (see below)|
 
-`controls` details:
+### `controls` parameters
 
-| Control group    | Details                                                                                                                         |
-| ---------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| Numeric controls | `max_distance`, `min_distance`, `min_speed`, `no_target_delay`, `trigger_count`, `min_snr`, `snr_threshold`, `speed_correction` |
-| Select controls  | `detection_direction` (`away`, `approach`, `both`)                                                                              |
-| Runtime notes    | `min_snr` only accepts `0` or `3..8`; runtime values `1` and `2` are coerced to `0`                                             |
-| Runtime notes    | `snr_threshold` accepts `0..64` and is mapped to the native LD2451 `min_snr` scale (`0`, `3..8`)                                |
+All device-stored parameters are written to flash and survive power cycles.
+
+| Control               | Range / Options              | Default | Where stored  | Description (from HLK-LD2451 User Manual §5.2)                                                                            |
+| --------------------- | ---------------------------- | ------- | ------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `max_distance`        | `10..100` m                  | `100`   | Device        | Farthest detection distance. Targets beyond this are ignored by the device.                                               |
+| `min_distance`        | `0..100` m                   | `0`     | Software only | Publish filter applied in ESPHome. Targets closer than this are not reported to Home Assistant.                           |
+| `min_speed`           | `0..120` km/h                | `0`     | Device        | Minimum speed a target must exceed to be reported. Slower targets are ignored.                                            |
+| `detection_direction` | `away` / `approach` / `both` | `both`  | Device        | `approach`: same-direction vehicles only. `away`: opposite-direction vehicles only. `both`: all directions.               |
+| `no_target_delay`     | `0..255` s                   | `0`     | Device        | How long after the last detection the device continues reporting the target. Resets if a new detection occurs within this window. |
+| `trigger_count`       | `1..10`                      | `1`     | Device        | Number of consecutive detections required before the device reports a target. Higher values reduce false triggers.         |
+| `min_snr`             | `0` or `3..8`                | `0`     | Device        | `0` = device default (equivalent to 4). `3..8`: lower = more sensitive, easier to trigger; higher = less sensitive, harder. Not recommended to change unless needed. |
+| `snr_threshold`       | `0..64`                      | `0`     | Device        | Alternative app-scale SNR input (0..64) that maps to native `min_snr` levels (`0`, `3..8`). Use instead of `min_snr`.    |
+| `speed_correction`    | `0.1..4.0`                   | `1.0`   | Software only | Multiplier applied to the published speed value. Does not affect the device.                                              |
 
 ## Runtime Config Sync
 
-- Device is source of truth.
-- Component reads at boot.
-- Component polls every 5 seconds.
-- Post-write readback publishes actual values.
-- Bluetooth-side changes reflected within 5 seconds.
+- Device is source of truth on boot.
+- Component reads device config once at startup and populates the `controls` entities.
+- Post-write readback confirms actual device values after any change.
+- Use the `controls` entities in Home Assistant to adjust parameters at runtime.
 
 UART validation is enforced for:
 
@@ -151,37 +149,30 @@ Use `vehicle_detected` (`off` -> `on`) as the trigger in HA automations. The spe
 
 ## Runtime Controls Example
 
+Configure all parameters from Home Assistant via `controls:` entities. The device is the source of
+truth on boot; values set here persist to device flash and survive power cycles.
+
 ```yaml
 ld2451:
   id: radar
   uart_id: uart_bus
-  max_distance: 100
-  min_distance: 5
-  min_speed: 10
-  detection_direction: both
-  no_target_delay: 2
-  trigger_count: 2
-  min_snr: 4
-  speed_correction: 1.05
   controls:
     max_distance:
-      name: "LD2451 Max Distance"
+      name: "LD2451 Max Distance"      # 10..100 m, device-stored
     min_distance:
-      name: "LD2451 Min Distance"
+      name: "LD2451 Min Distance"      # 0..100 m, software filter only
     min_speed:
-      name: "LD2451 Min Speed"
+      name: "LD2451 Min Speed"         # 0..120 km/h, device-stored
     no_target_delay:
-      name: "LD2451 No Target Delay"
+      name: "LD2451 No Target Delay"   # 0..255 s, device-stored
     trigger_count:
-      name: "LD2451 Trigger Count"
-    min_snr:
-      name: "LD2451 Min SNR"
+      name: "LD2451 Trigger Count"     # 1..10, device-stored
     snr_threshold:
-      name: "LD2451 SNR Threshold"
+      name: "LD2451 SNR Threshold"     # 0..64 app scale → native 0/3..8, device-stored
     speed_correction:
-      name: "LD2451 Speed Correction"
+      name: "LD2451 Speed Correction"  # 0.1..4.0 multiplier, software only
     detection_direction:
-      name: "LD2451 Detection Direction"
+      name: "LD2451 Detection Direction"  # away / approach / both, device-stored
 ```
 
 ## Fast Host Tests

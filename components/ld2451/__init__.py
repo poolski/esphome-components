@@ -93,46 +93,55 @@ CONFIG_SCHEMA = (
             ),
             cv.Optional(CONF_CONTROLS): cv.Schema(
                 {
+                    # Max detection distance in metres (10..100). Targets beyond this are ignored by the device.
                     cv.Optional(CONF_MAX_DISTANCE): number.number_schema(
                         LD2451MaxDistanceNumber,
                         entity_category=ENTITY_CATEGORY_CONFIG,
                         icon="mdi:ruler",
                     ),
+                    # Min detection distance in metres (0..100). Software-only filter; does not affect the device.
                     cv.Optional(CONF_MIN_DISTANCE): number.number_schema(
                         LD2451MinDistanceNumber,
                         entity_category=ENTITY_CATEGORY_CONFIG,
                         icon="mdi:ruler-square",
                     ),
+                    # Minimum target speed in km/h (0..120). Targets slower than this are not reported by the device.
                     cv.Optional(CONF_MIN_SPEED): number.number_schema(
                         LD2451MinSpeedNumber,
                         entity_category=ENTITY_CATEGORY_CONFIG,
                         icon="mdi:speedometer",
                     ),
+                    # Seconds (0..255) after the last detection before the device stops reporting the target.
                     cv.Optional(CONF_NO_TARGET_DELAY): number.number_schema(
                         LD2451NoTargetDelayNumber,
                         entity_category=ENTITY_CATEGORY_CONFIG,
                         icon="mdi:timer-outline",
                     ),
+                    # Consecutive detections (1..10) required before the device reports a target. Higher = less false triggers.
                     cv.Optional(CONF_TRIGGER_COUNT): number.number_schema(
                         LD2451TriggerCountNumber,
                         entity_category=ENTITY_CATEGORY_CONFIG,
                         icon="mdi:counter",
                     ),
+                    # Native SNR threshold level: 0 = device default (4); 3..8 — higher value = lower sensitivity.
                     cv.Optional(CONF_MIN_SNR): number.number_schema(
                         LD2451MinSnrNumber,
                         entity_category=ENTITY_CATEGORY_CONFIG,
                         icon="mdi:signal",
                     ),
+                    # App-scale SNR threshold (0..64) mapped to native levels (0, 3..8). Alternative to min_snr.
                     cv.Optional(CONF_SNR_THRESHOLD): number.number_schema(
                         LD2451SnrThresholdNumber,
                         entity_category=ENTITY_CATEGORY_CONFIG,
                         icon="mdi:signal-distance-variant",
                     ),
+                    # Multiplier applied to published speed (0.1..4.0). Software-only; does not affect the device.
                     cv.Optional(CONF_SPEED_CORRECTION): number.number_schema(
                         LD2451SpeedCorrectionNumber,
                         entity_category=ENTITY_CATEGORY_CONFIG,
                         icon="mdi:tune-variant",
                     ),
+                    # Detection direction filter: away = opposite-direction only; approach = same-direction only; both = all.
                     cv.Optional(CONF_DETECTION_DIRECTION): select.select_schema(
                         LD2451DetectionDirectionSelect,
                         entity_category=ENTITY_CATEGORY_CONFIG,
