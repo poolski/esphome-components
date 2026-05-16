@@ -82,7 +82,7 @@ class LD2451Component : public Component, public uart::UARTDevice {
   bool write_sensitivity_params_();
   void mark_config_dirty_if_changed_(const RuntimeConfig &before);
   void refresh_runtime_entities_();
-  static constexpr uint32_t COMMAND_ACK_TIMEOUT_MS = 120;
+  static constexpr uint32_t COMMAND_ACK_TIMEOUT_MS = 400;
   static constexpr uint32_t SYNC_INTERVAL_MS = 5000;
   static constexpr uint16_t MAX_ACK_PAYLOAD_LEN = 64;
   static uint8_t detection_direction_from_option_(const std::string &value);

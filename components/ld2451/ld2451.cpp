@@ -4,6 +4,7 @@
 #include <cstring>
 
 #include "ack_codec.h"
+#include "ack_stream.h"
 #include "config_state.h"
 #include "runtime_sync.h"
 #include "target_publisher.h"
@@ -260,21 +261,14 @@ bool LD2451Component::send_command_wait_ack_(uint16_t command, const std::vector
   this->flush();
 
   const uint32_t start = millis();
-  uint8_t rolling[4] = {0};
-  size_t fill = 0;
+  std::vector<uint8_t> rx_bytes;
+  rx_bytes.reserve(96);
   while (true) {
     if (this->available()) {
-      uint8_t b = this->read();
-      if (fill < 4) {
-        rolling[fill++] = b;
-      } else {
-        rolling[0] = rolling[1];
-        rolling[1] = rolling[2];
-        rolling[2] = rolling[3];
-        rolling[3] = b;
-      }
-      if (fill == 4 && std::memcmp(rolling, CMD_HEADER, sizeof(CMD_HEADER)) == 0) {
-        break;
+      rx_bytes.push_back(this->read());
+      const AckScanResult result = scan_for_matching_ack(rx_bytes, command, MAX_ACK_PAYLOAD_LEN, ret);
+      if (result == AckScanResult::MATCHED) {
+        return true;
       }
       continue;
     }
@@ -284,41 +278,7 @@ bool LD2451Component::send_command_wait_ack_(uint16_t command, const std::vector
     delay(1);
   }
 
-  uint8_t len_bytes[2];
-  if (!this->read_exact_(len_bytes, 2, timeout_ms)) {
-    return false;
-  }
-  const uint16_t ack_len = static_cast<uint16_t>(len_bytes[0]) | (static_cast<uint16_t>(len_bytes[1]) << 8);
-  if (ack_len < 4) {
-    return false;
-  }
-  if (ack_len > MAX_ACK_PAYLOAD_LEN) {
-    ESP_LOGW(TAG, "Rejecting ACK with unexpected length %u", ack_len);
-    return false;
-  }
-
-  std::vector<uint8_t> ack_payload(ack_len);
-  if (!this->read_exact_(ack_payload.data(), ack_payload.size(), timeout_ms)) {
-    return false;
-  }
-
-  uint8_t tail[4];
-  if (!this->read_exact_(tail, sizeof(tail), timeout_ms)) {
-    return false;
-  }
-  if (std::memcmp(tail, CMD_TAIL, sizeof(CMD_TAIL)) != 0) {
-    return false;
-  }
-
-  const AckDecodeResult decoded = decode_ack(command, ack_payload, MAX_ACK_PAYLOAD_LEN);
-  if (!decoded.ok) {
-    return false;
-  }
-
-  if (ret != nullptr) {
-    ret->assign(decoded.value.begin(), decoded.value.end());
-  }
-  return true;
+  return false;
 }
 
 bool LD2451Component::enter_config_mode_() {

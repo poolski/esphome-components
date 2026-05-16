@@ -19,5 +19,20 @@ int main() {
   assert(frame.target_count == 1);
   assert(frame.has_target);
   assert(frame.first_target.distance == 0x10);
+
+  FrameParser empty_payload_parser;
+  std::vector<uint8_t> empty_payload = {
+      0xF4, 0xF3, 0xF2, 0xF1,
+      0x00, 0x00,
+      0xF8, 0xF7, 0xF6, 0xF5,
+  };
+  empty_payload_parser.push(empty_payload.data(), empty_payload.size());
+
+  ParsedFrame empty_frame{};
+  const bool empty_ok = empty_payload_parser.pop(empty_frame);
+  assert(empty_ok);
+  assert(!empty_frame.has_target);
+  assert(empty_frame.target_count == 0);
+
   return 0;
 }
