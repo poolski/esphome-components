@@ -655,8 +655,8 @@ void LD2451Component::publish_frame_(uint8_t target_count, const ParsedTarget &f
 
   const TargetOutput output = compute_target_output(this->desired_, first_target);
   if (!output.publish) {
-    ESP_LOGD(TAG, "Target filtered by distance window: %u (window=%u..%u)", first_target.distance,
-             this->desired_.min_distance, this->desired_.max_distance);
+    ESP_LOGD(TAG, "Target filtered: distance %u < min_distance %u", first_target.distance,
+             this->desired_.min_distance);
     maybe_publish_idle_reset();
     return;
   }

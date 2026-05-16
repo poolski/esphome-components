@@ -111,7 +111,7 @@ All device-stored parameters are written to flash and survive power cycles.
 | Control               | Range / Options              | Default | Where stored  | Description (from HLK-LD2451 User Manual §5.2)                                                                            |
 | --------------------- | ---------------------------- | ------- | ------------- | ------------------------------------------------------------------------------------------------------------------------- |
 | `max_distance`        | `10..100` m                  | `100`   | Device        | Farthest detection distance. Targets beyond this are ignored by the device.                                               |
-| `min_distance`        | `0..100` m                   | `0`     | Software only | Publish filter applied in ESPHome. Targets closer than this are not reported to Home Assistant.                           |
+| `min_distance`        | `0..100` m                   | `0`     | Software only | ESPHome publish filter. Targets closer than this are suppressed in Home Assistant. No device equivalent.                 |
 | `min_speed`           | `0..120` km/h                | `0`     | Device        | Minimum speed a target must exceed to be reported. Slower targets are ignored.                                            |
 | `detection_direction` | `away` / `approach` / `both` | `both`  | Device        | `approach`: same-direction vehicles only. `away`: opposite-direction vehicles only. `both`: all directions.               |
 | `no_target_delay`     | `0..255` s                   | `0`     | Device        | How long after the last detection the device continues reporting the target. Resets if a new detection occurs within this window. |
@@ -141,7 +141,7 @@ UART validation is enforced for:
 | Target publishing  | Current implementation publishes only the first target details (`target 1`) per frame                                        |
 | No-target behavior | After `no_target_delay`, target fields reset to `0`, direction resets to `None`, and `vehicle_detected` resets to `OFF`      |
 | Trigger count      | `vehicle_detected` is gated on the device alarm flag (set only after `trigger_count` consecutive detections). Distance, speed, angle, and SNR are published for any qualifying target, even before the alarm fires. |
-| Distance filtering | `min_distance` is software-side only: targets outside `min_distance..max_distance` are filtered from published target fields |
+| Distance filtering | `min_distance` is software-side only: targets closer than this value are suppressed. `max_distance` is device-side only: the device enforces it, so ESPHome publishes whatever the device reports. |
 | Speed correction   | `speed_correction` is software-side only: published speed is multiplied by this value                                        |
 
 ### Home Assistant automation trigger

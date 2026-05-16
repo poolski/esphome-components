@@ -7,7 +7,7 @@ using namespace esphome::ld2451;
 int main() {
   RuntimeConfig cfg{};
   cfg.min_distance = 5;
-  cfg.max_distance = 10;
+  cfg.max_distance = 10;  // device-side only; does not affect ESPHome publish filter
   cfg.speed_correction = 1.1f;
 
   ParsedTarget target{};
@@ -26,7 +26,12 @@ int main() {
   assert(no_alarm_out.publish);
   assert(no_alarm_out.alarm == false);
 
-  target.distance = 20;
+  // targets beyond max_distance still publish (device-side filter only)
+  target.distance = 34;
+  assert(compute_target_output(cfg, target).publish);
+
+  // only min_distance is a software filter: targets below it are suppressed
+  target.distance = 4;
   assert(!compute_target_output(cfg, target).publish);
 
   assert(direction_label(0x01) == std::string("Approaching"));

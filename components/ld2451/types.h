@@ -5,7 +5,8 @@
 namespace esphome::ld2451 {
 
 struct RuntimeConfig {
-  // Range: 0x0A..0xFF (10..100 m). Targets beyond this distance are ignored by the device. Device-stored.
+  // Range: 0x0A..0xFF (10..100 m). Device-stored; the device enforces this limit in hardware.
+  // Not used as an ESPHome software filter — ESPHome publishes whatever the device reports.
   uint8_t max_distance{100};
   // Range: 0..100 m. Software-only filter: targets closer than this are not published to ESPHome.
   uint8_t min_distance{0};
