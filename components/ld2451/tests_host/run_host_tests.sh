@@ -20,8 +20,11 @@ clang++ -std=c++17 -Wall -Wextra -pedantic \
 /tmp/ld2451-ack-codec-test
 
 clang++ -std=c++17 -Wall -Wextra -pedantic \
+  -c components/ld2451/ack_stream.cpp \
+  -Icomponents/ld2451 -o /tmp/ld2451-ack-stream.o
+
+clang++ -std=c++17 -Wall -Wextra -pedantic \
   components/ld2451/tests_host/command_ack_test.cpp \
-  components/ld2451/ack_stream.cpp \
   components/ld2451/ack_codec.cpp \
   -Icomponents/ld2451 -o /tmp/ld2451-command-ack-test
 /tmp/ld2451-command-ack-test
