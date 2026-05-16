@@ -63,26 +63,34 @@ LD2451DetectionDirectionSelect = ld2451_ns.class_(
 )
 cg.add_global(ld2451_ns.using)
 
-def _validate_distance_window(config):
-    min_distance = config.get(CONF_MIN_DISTANCE, 0)
-    max_distance = config.get(CONF_MAX_DISTANCE, 100)
-    if min_distance > max_distance:
-        raise cv.Invalid("min_distance must be <= max_distance")
-    return config
-
-
-CONFIG_SCHEMA = cv.All(
+CONFIG_SCHEMA = (
     cv.Schema(
         {
             cv.GenerateID(): cv.declare_id(LD2451Component),
-            cv.Optional(CONF_MAX_DISTANCE): cv.int_range(min=10, max=100),
-            cv.Optional(CONF_MIN_DISTANCE, default=0): cv.int_range(min=0, max=100),
-            cv.Optional(CONF_MIN_SPEED): cv.int_range(min=0, max=120),
-            cv.Optional(CONF_DETECTION_DIRECTION): cv.enum(DETECTION_DIRECTION_OPTIONS, lower=True),
-            cv.Optional(CONF_NO_TARGET_DELAY): cv.int_range(min=0, max=255),
-            cv.Optional(CONF_TRIGGER_COUNT): cv.int_range(min=1, max=10),
-            cv.Optional(CONF_MIN_SNR): cv.Any(cv.int_range(min=0, max=0), cv.int_range(min=3, max=8)),
-            cv.Optional(CONF_SPEED_CORRECTION, default=1.0): cv.float_range(min=0.1, max=4.0),
+            cv.Optional(CONF_MAX_DISTANCE): cv.invalid(
+                f"'{CONF_MAX_DISTANCE}' has been moved to the 'controls: {CONF_MAX_DISTANCE}' number entity"
+            ),
+            cv.Optional(CONF_MIN_DISTANCE): cv.invalid(
+                f"'{CONF_MIN_DISTANCE}' has been moved to the 'controls: {CONF_MIN_DISTANCE}' number entity"
+            ),
+            cv.Optional(CONF_MIN_SPEED): cv.invalid(
+                f"'{CONF_MIN_SPEED}' has been moved to the 'controls: {CONF_MIN_SPEED}' number entity"
+            ),
+            cv.Optional(CONF_DETECTION_DIRECTION): cv.invalid(
+                f"'{CONF_DETECTION_DIRECTION}' has been moved to the 'controls: {CONF_DETECTION_DIRECTION}' select entity"
+            ),
+            cv.Optional(CONF_NO_TARGET_DELAY): cv.invalid(
+                f"'{CONF_NO_TARGET_DELAY}' has been moved to the 'controls: {CONF_NO_TARGET_DELAY}' number entity"
+            ),
+            cv.Optional(CONF_TRIGGER_COUNT): cv.invalid(
+                f"'{CONF_TRIGGER_COUNT}' has been moved to the 'controls: {CONF_TRIGGER_COUNT}' number entity"
+            ),
+            cv.Optional(CONF_MIN_SNR): cv.invalid(
+                f"'{CONF_MIN_SNR}' has been moved to the 'controls: {CONF_MIN_SNR}' number entity"
+            ),
+            cv.Optional(CONF_SPEED_CORRECTION): cv.invalid(
+                f"'{CONF_SPEED_CORRECTION}' has been moved to the 'controls: {CONF_SPEED_CORRECTION}' number entity"
+            ),
             cv.Optional(CONF_CONTROLS): cv.Schema(
                 {
                     cv.Optional(CONF_MAX_DISTANCE): number.number_schema(
@@ -168,8 +176,7 @@ CONFIG_SCHEMA = cv.All(
         }
     )
     .extend(uart.UART_DEVICE_SCHEMA)
-    .extend(cv.COMPONENT_SCHEMA),
-    _validate_distance_window,
+    .extend(cv.COMPONENT_SCHEMA)
 )
 
 FINAL_VALIDATE_SCHEMA = uart.final_validate_device_schema(
@@ -184,23 +191,6 @@ async def to_code(config):
     var = cg.new_Pvariable(config[CONF_ID])
     await cg.register_component(var, config)
     await uart.register_uart_device(var, config)
-
-    if CONF_MAX_DISTANCE in config:
-        cg.add(var.set_max_distance(config[CONF_MAX_DISTANCE]))
-    if CONF_MIN_DISTANCE in config:
-        cg.add(var.set_min_distance(config[CONF_MIN_DISTANCE]))
-    if CONF_MIN_SPEED in config:
-        cg.add(var.set_min_speed(config[CONF_MIN_SPEED]))
-    if CONF_DETECTION_DIRECTION in config:
-        cg.add(var.set_detection_direction(config[CONF_DETECTION_DIRECTION]))
-    if CONF_NO_TARGET_DELAY in config:
-        cg.add(var.set_no_target_delay(config[CONF_NO_TARGET_DELAY]))
-    if CONF_TRIGGER_COUNT in config:
-        cg.add(var.set_trigger_count(config[CONF_TRIGGER_COUNT]))
-    if CONF_MIN_SNR in config:
-        cg.add(var.set_min_snr(config[CONF_MIN_SNR]))
-    if CONF_SPEED_CORRECTION in config:
-        cg.add(var.set_speed_correction(config[CONF_SPEED_CORRECTION]))
 
     if controls_config := config.get(CONF_CONTROLS):
         if max_distance_config := controls_config.get(CONF_MAX_DISTANCE):
