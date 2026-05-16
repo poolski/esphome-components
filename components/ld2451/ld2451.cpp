@@ -33,6 +33,7 @@ void LD2451Component::set_snr_threshold(int value) {
 void LD2451Component::setup() {
   this->rx_buffer_.reserve(256);
   this->applied_ = this->desired_;
+  this->force_sync_ = true;
   FirmwareVersionInfo fw{};
   if (this->read_firmware_version_(fw)) {
     const std::string fw_version = format_firmware_version(fw);
@@ -90,6 +91,7 @@ void LD2451Component::loop() {
       this->config_in_flight_ = true;
       bool ok = this->apply_runtime_config_();
       this->config_in_flight_ = false;
+      this->force_sync_ = true;
       if (!ok) {
         this->config_apply_failures_++;
         ESP_LOGW(TAG, "Runtime config apply failed (attempt=%u); keeping previous applied settings",
@@ -101,6 +103,7 @@ void LD2451Component::loop() {
 
   if (should_run_sync(this->force_sync_, this->sync_in_flight_ || this->config_in_flight_ || this->config_dirty_, now,
                       this->last_sync_ms_, SYNC_INTERVAL_MS)) {
+    this->force_sync_ = false;
     this->last_sync_ms_ = now;
     this->sync_in_flight_ = true;
     const bool ok = this->sync_runtime_config_from_device_();

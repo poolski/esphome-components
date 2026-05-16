@@ -39,6 +39,7 @@ int main() {
   assert(coerced_snr.changed);
   assert(coerced_snr.config.min_snr == 0);
 
+  assert(should_run_sync(true, false, 1, 1, 5000));
   assert(should_run_sync(true, false, 1000, 0, 5000));
   assert(!should_run_sync(true, true, 1000, 0, 5000));
   assert(!should_run_sync(false, true, 6000, 0, 5000));
