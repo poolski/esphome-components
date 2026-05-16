@@ -51,28 +51,28 @@ The radar configuration command and ACK command formats defined by the protocol 
 
 **Table 2. Send command protocol frame format**
 
-| Frame Header | Data length in frame | Intra-frame data | Frame end |
-| --- | --- | --- | --- |
-| `FD FC FB FA` | 2 bytes | See Table 3 | `04 03 02 01` |
+| Frame Header  | Data length in frame | Intra-frame data | Frame end     |
+| ------------- | -------------------- | ---------------- | ------------- |
+| `FD FC FB FA` | 2 bytes              | See Table 3      | `04 03 02 01` |
 
 **Table 3. Send frame data format**
 
 | Command word | Command value |
-| --- | --- |
-| 2 bytes | N bytes |
+| ------------ | ------------- |
+| 2 bytes      | N bytes       |
 
 **Table 4. ACK command protocol frame format**
 
-| Frame Header | Data length in frame | Intra-frame data | Frame end |
-| --- | --- | --- | --- |
-| `FD FC FB FA` | 2 bytes | See Table 5 | `04 03 02 01` |
+| Frame Header  | Data length in frame | Intra-frame data | Frame end     |
+| ------------- | -------------------- | ---------------- | ------------- |
+| `FD FC FB FA` | 2 bytes              | See Table 5      | `04 03 02 01` |
 
 **Table 5. ACK frame data format**
 
-| Field | Size |
-| --- | --- |
+| Field                        | Size    |
+| ---------------------------- | ------- |
 | Send command word `& 0x0100` | 2 bytes |
-| Return value | N bytes |
+| Return value                 | N bytes |
 
 ### 1.2 Send command and ACK
 
@@ -125,12 +125,12 @@ FD FC FB FA 04 00 FE 01 00 00 04 03 02 01
 
 Command value byte layout:
 
-| Byte | Field | Description |
-| --- | --- | --- |
-| 1 | Maximum detection distance | `(0A-FF)`, unit: m |
-| 2 | Movement direction setting | `00`: only detect away; `01`: only detect approach; `02`: all detected |
-| 3 | Minimum motion speed setting | `(00-0x78)`, unit: km/h |
-| 4 | No target delay time setting | `00~FF`, unit: s |
+| Byte | Field                        | Description                                                            |
+| ---- | ---------------------------- | ---------------------------------------------------------------------- |
+| 1    | Maximum detection distance   | `(0A-FF)`, unit: m                                                     |
+| 2    | Movement direction setting   | `00`: only detect away; `01`: only detect approach; `02`: all detected |
+| 3    | Minimum motion speed setting | `(00-0x78)`, unit: km/h                                                |
+| 4    | No target delay time setting | `00~FF`, unit: s                                                       |
 
 Send data:
 
@@ -179,12 +179,12 @@ FD FC FB FA 08 00 12 01 00 00 64 01 05 02 04 03 02 01
 
 Command value byte layout:
 
-| Byte | Field | Description |
-| --- | --- | --- |
-| 1 | Cumulative effective trigger times | `1-0A`: alarm info is reported only after this number of consecutive detections is met (program default is 1) |
-| 2 | Signal-to-noise ratio threshold level | `00`: program default parameter is 4; `3-8`: larger value means lower sensitivity and harder target detection |
-| 3 | Extended parameter | `00` |
-| 4 | Extended parameter | `00` |
+| Byte | Field                                 | Description                                                                                                   |
+| ---- | ------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| 1    | Cumulative effective trigger times    | `1-0A`: alarm info is reported only after this number of consecutive detections is met (program default is 1) |
+| 2    | Signal-to-noise ratio threshold level | `00`: program default parameter is 4; `3-8`: larger value means lower sensitivity and harder target detection |
+| 3    | Extended parameter                    | `00`                                                                                                          |
+| 4    | Extended parameter                    | `00`                                                                                                          |
 
 Send data:
 
@@ -262,15 +262,15 @@ The value is retained across power cycles and takes effect after restart.
 **Table 6. Serial port baud rate selection**
 
 | Index value | Baud rate |
-| --- | --- |
-| `0x0001` | 9600 |
-| `0x0002` | 19200 |
-| `0x0003` | 38400 |
-| `0x0004` | 57600 |
-| `0x0005` | 115200 |
-| `0x0006` | 230400 |
-| `0x0007` | 256000 |
-| `0x0008` | 460800 |
+| ----------- | --------- |
+| `0x0001`    | 9600      |
+| `0x0002`    | 19200     |
+| `0x0003`    | 38400     |
+| `0x0004`    | 57600     |
+| `0x0005`    | 115200    |
+| `0x0006`    | 230400    |
+| `0x0007`    | 256000    |
+| `0x0008`    | 460800    |
 
 Factory default is `0x0005` (`115200`).
 
@@ -342,19 +342,19 @@ The extracted source text references Table 10 for reported data type definitions
 
 **Table 8. Reporting data frame format**
 
-| Frame Header | Data length in frame | Intra-frame data | Frame tail |
-| --- | --- | --- | --- |
-| `F4 F3 F2 F1` | 2 bytes | See Table 9 | `F8 F7 F6 F5` |
+| Frame Header  | Data length in frame | Intra-frame data | Frame tail    |
+| ------------- | -------------------- | ---------------- | ------------- |
+| `F4 F3 F2 F1` | 2 bytes              | See Table 9      | `F8 F7 F6 F5` |
 
 **Table 9. Intra-frame data frame format**
 
-| Field | Size | Notes |
-| --- | --- | --- |
-| Target quantity | 1 byte |  |
-| Alarm information | 1 byte | `01`: there is a target approaching; `00`: no approach target |
+| Field                | Size    | Notes                                                                  |
+| -------------------- | ------- | ---------------------------------------------------------------------- |
+| Target quantity      | 1 byte  |                                                                        |
+| Alarm information    | 1 byte  | `01`: there is a target approaching; `00`: no approach target          |
 | Target 1 information | 5 bytes | Angle (1), Distance (1), Speed direction (1), Speed value (1), SNR (1) |
-| Target 2 information | 5 bytes | Same as target 1 |
-| Target N information | 5 bytes | Same as target 1 |
+| Target 2 information | 5 bytes | Same as target 1                                                       |
+| Target N information | 5 bytes | Same as target 1                                                       |
 
 Per-target field notes from source text:
 
@@ -376,21 +376,21 @@ Analysis from source text:
 - Alarm information: `0x01` (there is a target approaching)
 - Target number: `0x03`
 
-Objective 1 information:
+Target 1 information:
 
 - Angle: `0x8A` -> 10 degrees (`0x8A - 0x80`)
 - Distance: `0x28` -> 40 meters
 - Speed: `0x003C`, target moving toward radar direction, speed 60 km/h
 - Signal-to-noise ratio: `0x15`
 
-Objective 2 information:
+Target 2 information:
 
 - Angle: `0x8A` -> 10 degrees (`0x8A - 0x80`)
 - Distance: `0x1E` -> 30 meters
 - Speed: `0x013C`, target moving away from radar direction, speed 60 km/h
 - Signal-to-noise ratio: `0x0F`
 
-Goal 3 information:
+Target 3 information:
 
 - Angle: `0x76` -> -10 degrees (`0x76 - 0x80`)
 - Distance: `0x5F` -> 95 meters
@@ -401,9 +401,9 @@ Goal 3 information:
 
 #### 1.4.1 Radar command configuration steps
 
-The process of executing a configuration command by the LD2451 radar includes two links:
+The process of executing a configuration command by the LD2451 radar involves 2 steps:
 
-- "send command" by the upper computer
+- "send command" by the upstream device
 - "reply command ACK" by the radar
 
 If the radar does not respond with an ACK, or fails to respond with a valid ACK,
@@ -426,11 +426,11 @@ The source document references "Figure 2 Radar command configuration process".
 
 ## 2 Revision History
 
-| Date | Version | Modifications |
-| --- | --- | --- |
-| 2024-5-15 | 1.01 | initial version |
-| 2024-5-20 | 1.02 | Modify some error descriptions |
-| 2024-7-1 | 1.03 | Modify some error descriptions |
+| Date      | Version | Modifications                  |
+| --------- | ------- | ------------------------------ |
+| 2024-5-15 | 1.01    | initial version                |
+| 2024-5-20 | 1.02    | Modify some error descriptions |
+| 2024-7-1  | 1.03    | Modify some error descriptions |
 
 ## 3 Technical support and contact information
 
