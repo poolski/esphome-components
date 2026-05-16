@@ -1,4 +1,5 @@
 #include <cassert>
+#include <cmath>
 
 #include "../target_publisher.h"
 
@@ -38,10 +39,10 @@ int main() {
   assert(direction_label(0x00) == std::string("Moving away"));
 
   const IdleResetOutput reset = build_idle_reset_output();
-  assert(reset.angle == 0);
-  assert(reset.distance == 0);
-  assert(reset.speed == 0.0f);
-  assert(reset.snr == 0);
+  assert(std::isnan(reset.angle));
+  assert(std::isnan(reset.distance));
+  assert(std::isnan(reset.speed));
+  assert(std::isnan(reset.snr));
   assert(reset.direction == std::string("None"));
 
   assert(should_publish_idle_reset(true, false, 4000, 1000, 3));

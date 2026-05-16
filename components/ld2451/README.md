@@ -146,7 +146,7 @@ UART validation is enforced for:
 
 ### Home Assistant automation trigger
 
-Use `vehicle_detected` (`off` -> `on`) as the trigger in HA automations. The speed, distance, and direction sensors are updated on qualifying detections, and reset when idle.
+Use `vehicle_detected` (`off` -> `on`) as the trigger in HA automations. The speed, distance, angle, and SNR sensors are updated on qualifying detections and become unavailable when idle; direction changes to `None`.
 
 ## Runtime Controls Example
 

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cmath>
 #include <cstdint>
 #include <string>
 
@@ -16,10 +17,10 @@ struct TargetOutput {
 };
 
 struct IdleResetOutput {
-  int angle{0};
-  uint8_t distance{0};
-  float speed{0.0f};
-  uint8_t snr{0};
+  float angle{NAN};
+  float distance{NAN};
+  float speed{NAN};
+  float snr{NAN};
   std::string direction{"None"};
 };
 

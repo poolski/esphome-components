@@ -33,14 +33,25 @@ uart:
 ld2451:
   id: radar
   uart_id: uart_bus
-  max_distance: 100
-  min_distance: 5
-  min_speed: 10
-  detection_direction: both
-  no_target_delay: 2
-  trigger_count: 2
-  min_snr: 4
-  speed_correction: 1.10
+  controls:
+    max_distance:
+      name: "LD2451 Max Distance"
+    min_distance:
+      name: "LD2451 Min Distance"
+    min_speed:
+      name: "LD2451 Min Speed"
+    no_target_delay:
+      name: "LD2451 No Target Delay"
+    trigger_count:
+      name: "LD2451 Trigger Count"
+    min_snr:
+      name: "LD2451 Min SNR"
+    snr_threshold:
+      name: "LD2451 App SNR Threshold"
+    speed_correction:
+      name: "LD2451 Speed Correction"
+    detection_direction:
+      name: "LD2451 Detection Direction"
   target_count:
     name: "LD2451 Target Count"
   vehicle_detected:
