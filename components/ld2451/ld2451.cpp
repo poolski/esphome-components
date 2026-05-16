@@ -169,12 +169,15 @@ void LD2451Component::loop() {
 
 void LD2451Component::dump_config() {
   ESP_LOGCONFIG(TAG, "LD2451:");
-  ESP_LOGCONFIG(TAG,
-                "  Runtime config: max_distance=%u min_distance=%u min_speed=%u detection_direction=%s no_target_delay=%u "
-                "trigger_count=%u min_snr=%u snr_threshold=%u speed_correction=%.2f",
-                this->desired_.max_distance, this->desired_.min_distance, this->desired_.min_speed,
-                this->detection_direction_to_option_(this->desired_.detection_direction), this->desired_.no_target_delay,
-                this->desired_.trigger_count, this->desired_.min_snr, this->snr_threshold_, this->desired_.speed_correction);
+  ESP_LOGCONFIG(TAG, "  Max Distance:        %u m", this->desired_.max_distance);
+  ESP_LOGCONFIG(TAG, "  Min Distance:        %u m (software filter)", this->desired_.min_distance);
+  ESP_LOGCONFIG(TAG, "  Min Speed:           %u km/h", this->desired_.min_speed);
+  ESP_LOGCONFIG(TAG, "  Detection Direction: %s", this->detection_direction_to_option_(this->desired_.detection_direction));
+  ESP_LOGCONFIG(TAG, "  No Target Delay:     %u s", this->desired_.no_target_delay);
+  ESP_LOGCONFIG(TAG, "  Trigger Count:       %u", this->desired_.trigger_count);
+  ESP_LOGCONFIG(TAG, "  Min SNR:             %u%s", this->desired_.min_snr, this->desired_.min_snr == 0 ? " (device default)" : "");
+  ESP_LOGCONFIG(TAG, "  SNR Threshold:       %u", this->snr_threshold_);
+  ESP_LOGCONFIG(TAG, "  Speed Correction:    %.2fx (software only)", this->desired_.speed_correction);
   LOG_SENSOR("  ", "Target Count", this->target_count_sensor_);
   LOG_BINARY_SENSOR("  ", "Vehicle Detected", this->vehicle_detected_binary_sensor_);
   LOG_SENSOR("  ", "Angle", this->angle_sensor_);
