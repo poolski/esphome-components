@@ -536,12 +536,8 @@ bool LD2451Component::extract_frame_() {
 
   if (payload_len == 0) {
     this->heartbeat_frames_++;
-    const uint32_t now = millis();
-    if (now - this->last_empty_hint_ms_ > 5000) {
-      ESP_LOGD(TAG, "Heartbeat frame %u: valid frame with no target readings (heartbeat frames=%u)",
-               static_cast<unsigned int>(this->parsed_frames_ + 1), static_cast<unsigned int>(this->heartbeat_frames_));
-      this->last_empty_hint_ms_ = now;
-    }
+    ESP_LOGD(TAG, "Heartbeat frame %u: valid frame with no target readings (heartbeat frames=%u)",
+             static_cast<unsigned int>(this->parsed_frames_ + 1), static_cast<unsigned int>(this->heartbeat_frames_));
   } else if (payload_len < 2) {
     this->short_payload_frames_++;
     const uint32_t now = millis();
