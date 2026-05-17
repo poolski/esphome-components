@@ -95,6 +95,7 @@ class LD2451Component : public Component, public uart::UARTDevice {
   std::vector<uint8_t> rx_buffer_;
   uint32_t parsed_frames_{0};
   uint32_t empty_frames_{0};
+  uint32_t heartbeat_frames_{0};
   uint32_t short_payload_frames_{0};
   uint32_t last_empty_hint_ms_{0};
   uint32_t last_rx_activity_log_ms_{0};
