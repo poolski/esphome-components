@@ -107,22 +107,6 @@ void LD2451Component::setup() {
   }
 
   this->refresh_runtime_entities_();
-  const IdleResetOutput reset = build_idle_reset_output();
-  if (this->angle_sensor_ != nullptr) {
-    this->angle_sensor_->publish_state(reset.angle);
-  }
-  if (this->distance_sensor_ != nullptr) {
-    this->distance_sensor_->publish_state(reset.distance);
-  }
-  if (this->speed_sensor_ != nullptr) {
-    this->speed_sensor_->publish_state(reset.speed);
-  }
-  if (this->snr_sensor_ != nullptr) {
-    this->snr_sensor_->publish_state(reset.snr);
-  }
-  if (this->direction_text_sensor_ != nullptr) {
-    this->direction_text_sensor_->publish_state(reset.direction);
-  }
   if (this->vehicle_detected_binary_sensor_ != nullptr) {
     this->vehicle_detected_binary_sensor_->publish_state(false);
   }
@@ -618,22 +602,6 @@ void LD2451Component::publish_frame_(uint8_t target_count, const ParsedTarget &f
 
   const uint32_t now = millis();
   const auto publish_idle_reset = [this]() {
-    const IdleResetOutput reset = build_idle_reset_output();
-    if (this->angle_sensor_ != nullptr) {
-      this->angle_sensor_->publish_state(reset.angle);
-    }
-    if (this->distance_sensor_ != nullptr) {
-      this->distance_sensor_->publish_state(reset.distance);
-    }
-    if (this->speed_sensor_ != nullptr) {
-      this->speed_sensor_->publish_state(reset.speed);
-    }
-    if (this->snr_sensor_ != nullptr) {
-      this->snr_sensor_->publish_state(reset.snr);
-    }
-    if (this->direction_text_sensor_ != nullptr) {
-      this->direction_text_sensor_->publish_state(reset.direction);
-    }
     if (this->vehicle_detected_binary_sensor_ != nullptr) {
       this->vehicle_detected_binary_sensor_->publish_state(false);
     }

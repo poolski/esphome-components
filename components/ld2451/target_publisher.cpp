@@ -16,8 +16,6 @@ TargetOutput compute_target_output(const RuntimeConfig &cfg, const ParsedTarget 
 
 const char *direction_label(uint8_t direction_raw) { return direction_raw == 0x01 ? "Approaching" : "Moving away"; }
 
-IdleResetOutput build_idle_reset_output() { return {}; }
-
 bool should_publish_idle_reset(bool detection_active, bool idle_published, uint32_t now_ms, uint32_t last_detection_ms,
                                uint8_t no_target_delay_s) {
   if (!detection_active || idle_published) {
