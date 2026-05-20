@@ -6,23 +6,50 @@ namespace {
 static constexpr uint8_t DATA_HEADER[] = {0xF4, 0xF3, 0xF2, 0xF1};
 static constexpr uint8_t DATA_TAIL[] = {0xF8, 0xF7, 0xF6, 0xF5};
 
+bool parse_target_block(const std::vector<uint8_t> &payload, size_t offset, ParsedTarget &target) {
+  if (offset + 5 > payload.size()) {
+    return false;
+  }
+
+  target.angle = static_cast<int>(payload[offset]) - 0x80;
+  target.distance = payload[offset + 1];
+  target.direction = payload[offset + 2];
+  target.speed = payload[offset + 3];
+  target.snr = payload[offset + 4];
+  return true;
+}
+
 bool parse_payload(const std::vector<uint8_t> &payload, ParsedFrame &frame) {
   if (payload.size() < 2) {
     return false;
   }
 
   frame.target_count = payload[0];
-  if (frame.target_count == 0 || payload.size() < 7) {
+  if (frame.target_count == 0) {
     return false;
   }
 
-  frame.first_target.alarm = (payload[1] == 0x01);
-  frame.first_target.angle = static_cast<int>(payload[2]) - 0x80;
-  frame.first_target.distance = payload[3];
-  frame.first_target.direction = payload[4];
-  frame.first_target.speed = payload[5];
-  frame.first_target.snr = payload[6];
-  return true;
+  const size_t required_size = 2 + static_cast<size_t>(frame.target_count) * 5;
+  if (payload.size() < required_size) {
+    return false;
+  }
+
+  const bool alarm = (payload[1] == 0x01);
+  bool has_target = false;
+  for (size_t i = 0; i < frame.target_count; i++) {
+    ParsedTarget candidate{};
+    if (!parse_target_block(payload, 2 + i * 5, candidate)) {
+      return false;
+    }
+    if (!has_target || candidate.distance < frame.first_target.distance) {
+      frame.first_target = candidate;
+      has_target = true;
+    }
+  }
+
+  frame.first_target.alarm = alarm;
+
+  return has_target;
 }
 }  // namespace
 

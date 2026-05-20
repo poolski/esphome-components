@@ -583,17 +583,33 @@ bool LD2451Component::parse_payload_(const std::vector<uint8_t> &payload, uint8_
   }
 
   target_count = payload[0];
-  if (target_count == 0 || payload.size() < 7) {
+  if (target_count == 0) {
     return false;
   }
 
-  first_target.alarm = (payload[1] == 0x01);
-  first_target.angle = static_cast<int>(payload[2]) - 0x80;
-  first_target.distance = payload[3];
-  first_target.direction = payload[4];
-  first_target.speed = payload[5];
-  first_target.snr = payload[6];
-  return true;
+  const size_t required_size = 2 + static_cast<size_t>(target_count) * 5;
+  if (payload.size() < required_size) {
+    return false;
+  }
+
+  const bool alarm = (payload[1] == 0x01);
+  bool has_target = false;
+  for (size_t i = 0; i < target_count; i++) {
+    const size_t offset = 2 + i * 5;
+    ParsedTarget candidate{};
+    candidate.angle = static_cast<int>(payload[offset]) - 0x80;
+    candidate.distance = payload[offset + 1];
+    candidate.direction = payload[offset + 2];
+    candidate.speed = payload[offset + 3];
+    candidate.snr = payload[offset + 4];
+    if (!has_target || candidate.distance < first_target.distance) {
+      first_target = candidate;
+      has_target = true;
+    }
+  }
+
+  first_target.alarm = alarm;
+  return has_target;
 }
 
 void LD2451Component::publish_frame_(uint8_t target_count, const ParsedTarget &first_target, bool has_target) {
