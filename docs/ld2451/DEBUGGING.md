@@ -2,7 +2,7 @@
 
 This runbook helps verify whether the radar is sending bytes, whether frames are parseable, and whether ESPHome is decoding them.
 
-## 1) Interrogate The Device Directly
+## 1) Inspect Live Frames Directly
 
 Run from repo root:
 
@@ -13,7 +13,6 @@ python3 docs/ld2451/ld2451_interrogate.py
 What this confirms:
 
 - serial device discovery works (USB/UART bridge found)
-- configuration commands can be ACKed
 - live frames are parseable in Python
 
 If no bridge is found, reconnect the USB/UART device and re-run.
@@ -36,7 +35,7 @@ This verifies:
 ./scripts/test-component.sh components/ld2451
 ```
 
-This ensures config/compile still pass after debugging changes.
+This ensures the component still configures and compiles cleanly after debugging changes.
 
 ## 4) Enable ESPHome Logging For Runtime Checks
 
@@ -58,5 +57,4 @@ These logs confirm UART activity even when payloads are short/empty.
 
 - **No serial port found**: USB/UART adapter disconnected or different device node.
 - **RX activity present, no parsed detections**: radar may be emitting empty/short payload frames while idle.
-- **Interrogator parses frames but ESPHome does not**: compare frame bytes and firmware behavior under the same wiring and baud settings.
-- **No ACK for config commands**: radar may already be streaming/busy, or command timing/state is incorrect.
+- **Live inspector parses frames but ESPHome does not**: compare frame bytes and wiring under the same baud settings.

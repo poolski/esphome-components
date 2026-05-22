@@ -10,7 +10,7 @@ This component parses LD2451 live data frames and exposes key values as ESPHome 
 | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Frame parsing     | Parses LD2451 data frames (`F4 F3 F2 F1 ... F8 F7 F6 F5`)                                                                                         |
 | Published data    | target count, vehicle detected, nearest target angle, nearest target distance, nearest target speed, nearest target SNR, nearest target direction |
-| Direction mapping | `0x01` => `Approaching`, `0x00` => `Moving away`, idle => `None`                                                                                  |
+| Direction mapping | `0x00` => `Approaching`, `0x01` => `Moving away`, idle => `None`                                                                                  |
 
 ## Installation
 
@@ -108,9 +108,6 @@ It exposes the following sensors:
 | `snr`              | `sensor`        | no       | Signal-to-noise ratio (0..255)                                                |
 | `direction`        | `text_sensor`   | no       | `Approaching`, `Moving away`, or `None`                                       |
 
-Runtime configuration is intentionally not exposed in ESPHome for this component.
-Keep device-side parameters such as `max_distance`, `trigger_count`, and `min_snr` in the LD2451's mobile app or sensor-side UI.
-
 UART validation is enforced for:
 
 | Validation     | Requirement |
@@ -124,18 +121,13 @@ UART validation is enforced for:
 | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Target publishing  | Current implementation publishes the nearest qualifying target per frame                                                                                                                                            |
 | No-target behavior | After `no_target_delay`, target fields reset to `0`, direction resets to `None`, and `vehicle_detected` resets to `OFF`                                                                                             |
-| Runtime settings   | Device-side parameters such as `max_distance`, `trigger_count`, and `min_snr` are not controlled by ESPHome; configure them from the sensor/mobile app.                                                            |
-| Distance filtering | `min_distance` is software-side only: targets closer than this value are suppressed. `max_distance` is device-side only: the device enforces it, so ESPHome publishes whatever the device reports.                  |
+| Runtime settings   | Device-side parameters such as `max_distance`, `trigger_count`, and `min_snr` stay on the radar itself; ESPHome only consumes live frames.                                                                        |
+| Distance filtering | `min_distance` is software-side only: targets closer than this value are suppressed, but a farther target from the same frame may still publish. `max_distance` is device-side only: the device enforces it, so ESPHome publishes whatever the device reports.                  |
 | Speed correction   | `speed_correction` is software-side only: published speed is multiplied by this value                                                                                                                               |
 
 ### Home Assistant automation trigger
 
 Use `vehicle_detected` (`off` -> `on`) as the trigger in HA automations. The speed, distance, angle, SNR, and direction sensors update on qualifying detections and retain their last observed values after detection ends.
-
-## Runtime Settings
-
-ESPHome no longer exposes runtime configuration entities for this component.
-Keep the LD2451 tuned from its own mobile app or sensor-side configuration UI.
 
 ## Fast Host Tests
 

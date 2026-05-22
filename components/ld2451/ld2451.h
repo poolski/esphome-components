@@ -9,7 +9,6 @@
 #include "esphome/components/uart/uart.h"
 #include "esphome/core/component.h"
 
-#include "ack_codec.h"
 #include "types.h"
 
 namespace esphome {
@@ -36,12 +35,7 @@ class LD2451Component : public Component, public uart::UARTDevice {
 
  protected:
   bool extract_frame_();
-  bool read_firmware_version_(FirmwareVersionInfo &out);
-  static constexpr uint32_t COMMAND_ACK_TIMEOUT_MS = 400;
-  static constexpr uint16_t MAX_ACK_PAYLOAD_LEN = 64;
-  bool send_command_wait_ack_(uint16_t command, const std::vector<uint8_t> &value, std::vector<uint8_t> *ret = nullptr,
-                              uint32_t timeout_ms = COMMAND_ACK_TIMEOUT_MS);
-  static bool parse_payload_(const std::vector<uint8_t> &payload, uint8_t &target_count, ParsedTarget &first_target);
+  bool parse_payload_(const std::vector<uint8_t> &payload, uint8_t &target_count, ParsedTarget &first_target);
   void publish_frame_(uint8_t target_count, const ParsedTarget &first_target, bool has_target);
 
   std::vector<uint8_t> rx_buffer_;

@@ -14,7 +14,22 @@ TargetOutput compute_target_output(const SensorSettings &cfg, const ParsedTarget
   return out;
 }
 
-const char *direction_label(uint8_t direction_raw) { return direction_raw == 0x01 ? "Approaching" : "Moving away"; }
+bool select_nearest_qualifying_target(const SensorSettings &cfg, const std::vector<ParsedTarget> &targets,
+                                      ParsedTarget &selected) {
+  bool has_selected = false;
+  for (const auto &target : targets) {
+    if (target.distance < cfg.min_distance) {
+      continue;
+    }
+    if (!has_selected || target.distance < selected.distance) {
+      selected = target;
+      has_selected = true;
+    }
+  }
+  return has_selected;
+}
+
+const char *direction_label(uint8_t direction_raw) { return direction_raw == 0x00 ? "Approaching" : "Moving away"; }
 
 bool should_publish_idle_reset(bool detection_active, bool idle_published, uint32_t now_ms, uint32_t last_detection_ms,
                                uint8_t no_target_delay_s) {

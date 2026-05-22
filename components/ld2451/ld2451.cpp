@@ -1,7 +1,5 @@
 #include "ld2451.h"
 
-#include "ack_codec.h"
-#include "ack_stream.h"
 #include "config_state.h"
 #include "target_publisher.h"
 #include "esphome/core/log.h"
@@ -14,20 +12,8 @@ static const char *const TAG = "ld2451";
 
 static const uint8_t DATA_HEADER[] = {0xF4, 0xF3, 0xF2, 0xF1};
 static const uint8_t DATA_TAIL[] = {0xF8, 0xF7, 0xF6, 0xF5};
-static const uint8_t CMD_HEADER[] = {0xFD, 0xFC, 0xFB, 0xFA};
-static const uint8_t CMD_TAIL[] = {0x04, 0x03, 0x02, 0x01};
-
 void LD2451Component::setup() {
   this->rx_buffer_.reserve(256);
-  FirmwareVersionInfo fw{};
-  if (this->read_firmware_version_(fw)) {
-    const std::string fw_version = format_firmware_version(fw);
-    ESP_LOGI(TAG, "Firmware: type=0x%04X version=%s (major=0x%04X minor=0x%08X)", fw.fw_type, fw_version.c_str(),
-             fw.major, static_cast<unsigned int>(fw.minor));
-  } else {
-    ESP_LOGI(TAG, "Firmware: unavailable");
-  }
-
   ESP_LOGI(TAG, "Runtime configuration via ESPHome is disabled");
   if (this->vehicle_detected_binary_sensor_ != nullptr) {
     this->vehicle_detected_binary_sensor_->publish_state(false);
@@ -71,54 +57,6 @@ void LD2451Component::dump_config() {
 }
 
 float LD2451Component::get_setup_priority() const { return setup_priority::DATA; }
-
-bool LD2451Component::send_command_wait_ack_(uint16_t command, const std::vector<uint8_t> &value, std::vector<uint8_t> *ret,
-                                             uint32_t timeout_ms) {
-  std::vector<uint8_t> payload;
-  payload.reserve(2 + value.size());
-  payload.push_back(static_cast<uint8_t>(command & 0xFF));
-  payload.push_back(static_cast<uint8_t>((command >> 8) & 0xFF));
-  payload.insert(payload.end(), value.begin(), value.end());
-
-  const uint16_t payload_len = static_cast<uint16_t>(payload.size());
-
-  this->write_array(CMD_HEADER, sizeof(CMD_HEADER));
-  this->write_byte(static_cast<uint8_t>(payload_len & 0xFF));
-  this->write_byte(static_cast<uint8_t>((payload_len >> 8) & 0xFF));
-  for (auto byte : payload) {
-    this->write_byte(byte);
-  }
-  this->write_array(CMD_TAIL, sizeof(CMD_TAIL));
-  this->flush();
-
-  const uint32_t start = millis();
-  std::vector<uint8_t> rx_bytes;
-  rx_bytes.reserve(96);
-  while (true) {
-    if (this->available()) {
-      rx_bytes.push_back(this->read());
-      const AckScanResult result = scan_for_matching_ack(rx_bytes, command, MAX_ACK_PAYLOAD_LEN, ret);
-      if (result == AckScanResult::MATCHED) {
-        return true;
-      }
-      continue;
-    }
-    if (millis() - start > timeout_ms) {
-      return false;
-    }
-    delay(1);
-  }
-
-  return false;
-}
-
-bool LD2451Component::read_firmware_version_(FirmwareVersionInfo &out) {
-  std::vector<uint8_t> ret;
-  if (!this->send_command_wait_ack_(0x00A0, {}, &ret)) {
-    return false;
-  }
-  return decode_firmware_version(ret, out);
-}
 
 bool LD2451Component::extract_frame_() {
   if (this->rx_buffer_.size() < 10) {
@@ -214,7 +152,8 @@ bool LD2451Component::parse_payload_(const std::vector<uint8_t> &payload, uint8_
   }
 
   const bool alarm = (payload[1] == 0x01);
-  bool has_target = false;
+  std::vector<ParsedTarget> candidates;
+  candidates.reserve(target_count);
   for (size_t i = 0; i < target_count; i++) {
     const size_t offset = 2 + i * 5;
     ParsedTarget candidate{};
@@ -223,14 +162,14 @@ bool LD2451Component::parse_payload_(const std::vector<uint8_t> &payload, uint8_
     candidate.direction = payload[offset + 2];
     candidate.speed = payload[offset + 3];
     candidate.snr = payload[offset + 4];
-    if (!has_target || candidate.distance < first_target.distance) {
-      first_target = candidate;
-      has_target = true;
-    }
+    candidates.push_back(candidate);
   }
 
+  if (!select_nearest_qualifying_target(this->desired_, candidates, first_target)) {
+    return false;
+  }
   first_target.alarm = alarm;
-  return has_target;
+  return true;
 }
 
 void LD2451Component::publish_frame_(uint8_t target_count, const ParsedTarget &first_target, bool has_target) {

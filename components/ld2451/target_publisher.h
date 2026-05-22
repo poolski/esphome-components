@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <string>
+#include <vector>
 
 #include "types.h"
 
@@ -16,6 +17,8 @@ struct TargetOutput {
 };
 
 TargetOutput compute_target_output(const SensorSettings &cfg, const ParsedTarget &target);
+bool select_nearest_qualifying_target(const SensorSettings &cfg, const std::vector<ParsedTarget> &targets,
+                                      ParsedTarget &selected);
 const char *direction_label(uint8_t direction_raw);
 bool should_publish_idle_reset(bool detection_active, bool idle_published, uint32_t now_ms, uint32_t last_detection_ms,
                                uint8_t no_target_delay_s);

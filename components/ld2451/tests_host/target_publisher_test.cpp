@@ -1,4 +1,5 @@
 #include <cassert>
+#include <vector>
 
 #include "../target_publisher.h"
 
@@ -34,8 +35,23 @@ int main() {
   target.distance = 4;
   assert(!compute_target_output(cfg, target).publish);
 
-  assert(direction_label(0x01) == std::string("Approaching"));
-  assert(direction_label(0x00) == std::string("Moving away"));
+  std::vector<ParsedTarget> targets{};
+  ParsedTarget near_target{};
+  near_target.distance = 4;
+  targets.push_back(near_target);
+  ParsedTarget far_target{};
+  far_target.distance = 7;
+  targets.push_back(far_target);
+  ParsedTarget selected{};
+  assert(select_nearest_qualifying_target(cfg, targets, selected));
+  assert(selected.distance == 7);
+
+  targets.clear();
+  targets.push_back(near_target);
+  assert(!select_nearest_qualifying_target(cfg, targets, selected));
+
+  assert(direction_label(0x00) == std::string("Approaching"));
+  assert(direction_label(0x01) == std::string("Moving away"));
 
   assert(should_publish_idle_reset(true, false, 4000, 1000, 3));
   assert(!should_publish_idle_reset(true, false, 3999, 1000, 3));
