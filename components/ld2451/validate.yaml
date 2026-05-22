@@ -49,3 +49,39 @@ ld2451:
     name: "LD2451 SNR"
   direction:
     name: "LD2451 Direction"
+  target_1_angle:
+    name: "LD2451 Target 1 Angle"
+  target_1_distance:
+    name: "LD2451 Target 1 Distance"
+  target_1_speed:
+    name: "LD2451 Target 1 Speed"
+  target_1_speed_mph:
+    name: "LD2451 Target 1 Speed MPH"
+  target_1_snr:
+    name: "LD2451 Target 1 SNR"
+  target_1_direction:
+    name: "LD2451 Target 1 Direction"
+  target_2_angle:
+    name: "LD2451 Target 2 Angle"
+  target_2_distance:
+    name: "LD2451 Target 2 Distance"
+  target_2_speed:
+    name: "LD2451 Target 2 Speed"
+  target_2_speed_mph:
+    name: "LD2451 Target 2 Speed MPH"
+  target_2_snr:
+    name: "LD2451 Target 2 SNR"
+  target_2_direction:
+    name: "LD2451 Target 2 Direction"
+  target_3_angle:
+    name: "LD2451 Target 3 Angle"
+  target_3_distance:
+    name: "LD2451 Target 3 Distance"
+  target_3_speed:
+    name: "LD2451 Target 3 Speed"
+  target_3_speed_mph:
+    name: "LD2451 Target 3 Speed MPH"
+  target_3_snr:
+    name: "LD2451 Target 3 SNR"
+  target_3_direction:
+    name: "LD2451 Target 3 Direction"

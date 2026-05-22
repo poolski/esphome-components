@@ -9,7 +9,7 @@ This component parses LD2451 live data frames and exposes key values as ESPHome 
 | Capability        | Details                                                                                                                                           |
 | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Frame parsing     | Parses LD2451 data frames (`F4 F3 F2 F1 ... F8 F7 F6 F5`)                                                                                         |
-| Published data    | target count, vehicle detected, nearest target angle, nearest target distance, nearest target speed, nearest target speed_mph, nearest target SNR, nearest target direction |
+| Published data    | target count, vehicle detected, nearest target angle/distance/speed/speed_mph/SNR/direction, plus live `target_1_*` / `target_2_*` / `target_3_*` frame-order slots |
 | Direction mapping | `0x00` => `Approaching`, `0x01` => `Moving away`, idle => `None`                                                                                  |
 
 ## Installation
@@ -87,6 +87,19 @@ ld2451:
     name: "LD2451 SNR"
   direction:
     name: "LD2451 Direction"
+  target_1_angle:
+    name: "LD2451 Target 1 Angle"
+  target_1_distance:
+    name: "LD2451 Target 1 Distance"
+  target_1_speed:
+    name: "LD2451 Target 1 Speed"
+  target_1_speed_mph:
+    name: "LD2451 Target 1 Speed MPH"
+  target_1_snr:
+    name: "LD2451 Target 1 SNR"
+  target_1_direction:
+    name: "LD2451 Target 1 Direction"
+  # Repeat the same pattern for target_2_* and target_3_*
 ```
 
 ## Configuration
@@ -110,6 +123,7 @@ It exposes the following sensors:
 | `speed_mph`        | `sensor`        | no       | mph (after `speed_correction`)                                                |
 | `snr`              | `sensor`        | no       | Signal-to-noise ratio (0..255)                                                |
 | `direction`        | `text_sensor`   | no       | `Approaching`, `Moving away`, or `None`                                       |
+| `target_1_*` / `target_2_*` / `target_3_*` | `sensor` / `text_sensor` | no | Live frame-order target slots with `angle`, `distance`, `speed`, `speed_mph`, `snr`, and `direction` |
 
 UART validation is enforced for:
 
@@ -122,8 +136,8 @@ UART validation is enforced for:
 
 | Topic              | Detail                                                                                                                                                                                                              |
 | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Target publishing  | Current implementation publishes the nearest qualifying target per frame                                                                                                                                            |
-| No-target behavior | After `no_target_delay`, target fields reset to `0`, direction resets to `None`, and `vehicle_detected` resets to `OFF`                                                                                             |
+| Target publishing  | Current implementation publishes the nearest qualifying target per frame and also exposes the first three raw targets as live frame-order slots                                                                   |
+| No-target behavior | After `no_target_delay`, nearest-target fields reset to `0`, live target slots reset to `NaN` / `None`, and `vehicle_detected` resets to `OFF`                                                                       |
 | Runtime settings   | Device-side parameters such as `max_distance`, `trigger_count`, and `min_snr` stay on the radar itself; ESPHome only consumes live frames.                                                                        |
 | Distance filtering | `min_distance` is software-side only: targets closer than this value are suppressed, but a farther target from the same frame may still publish. `max_distance` is device-side only: the device enforces it, so ESPHome publishes whatever the device reports.                  |
 | Speed correction   | `speed_correction` is software-side only: published speed is multiplied by this value; `speed_mph` is derived from the same corrected value                                                               |
@@ -153,7 +167,7 @@ At `DEBUG`, the component logs:
 
 | Log type          | Details                                                                      |
 | ----------------- | ---------------------------------------------------------------------------- |
-| Parsed telemetry  | decoded target values (`targets`, `angle`, `distance`, `speed`, `direction`, `snr`) |
+| Parsed telemetry  | decoded target values (`targets`, first target angle, distance, speed, direction, snr) |
 | Telemetry hints   | periodic hints when the sensor is sending data but no target payload is present |
 
 Important for pre-install bench checks: you may need large, deliberate movement to trigger detection

@@ -15,6 +15,18 @@ TargetOutput compute_target_output(const SensorSettings &cfg, const ParsedTarget
   return out;
 }
 
+std::array<LiveTargetOutput, kLiveTargetSlotCount> build_live_target_outputs(
+    const SensorSettings &cfg, const std::vector<ParsedTarget> &targets) {
+  std::array<LiveTargetOutput, kLiveTargetSlotCount> out{};
+  for (size_t i = 0; i < out.size() && i < targets.size(); i++) {
+    out[i].present = true;
+    out[i].target = targets[i];
+    out[i].corrected_speed = static_cast<float>(targets[i].speed) * cfg.speed_correction;
+    out[i].corrected_speed_mph = out[i].corrected_speed * 0.6213712f;
+  }
+  return out;
+}
+
 bool select_nearest_qualifying_target(const SensorSettings &cfg, const std::vector<ParsedTarget> &targets,
                                       ParsedTarget &selected) {
   bool has_selected = false;

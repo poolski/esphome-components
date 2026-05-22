@@ -1,5 +1,7 @@
 #pragma once
 
+#include <array>
+#include <cstddef>
 #include <cstdint>
 #include <string>
 #include <vector>
@@ -7,6 +9,8 @@
 #include "types.h"
 
 namespace esphome::ld2451 {
+
+constexpr size_t kLiveTargetSlotCount = 3;
 
 struct TargetOutput {
   bool publish{false};
@@ -17,7 +21,16 @@ struct TargetOutput {
   bool alarm{false};
 };
 
+struct LiveTargetOutput {
+  bool present{false};
+  ParsedTarget target{};
+  float corrected_speed{0.0f};
+  float corrected_speed_mph{0.0f};
+};
+
 TargetOutput compute_target_output(const SensorSettings &cfg, const ParsedTarget &target);
+std::array<LiveTargetOutput, kLiveTargetSlotCount> build_live_target_outputs(
+    const SensorSettings &cfg, const std::vector<ParsedTarget> &targets);
 bool select_nearest_qualifying_target(const SensorSettings &cfg, const std::vector<ParsedTarget> &targets,
                                       ParsedTarget &selected);
 const char *direction_label(uint8_t direction_raw);

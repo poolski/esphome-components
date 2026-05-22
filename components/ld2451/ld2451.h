@@ -1,5 +1,7 @@
 #pragma once
 
+#include <array>
+#include <cstddef>
 #include <string>
 #include <vector>
 
@@ -10,11 +12,21 @@
 #include "esphome/core/component.h"
 
 #include "types.h"
+#include "target_publisher.h"
 
 namespace esphome {
 namespace ld2451 {
 
 class LD2451Component;
+
+struct LiveTargetSensors {
+  sensor::Sensor *angle{nullptr};
+  sensor::Sensor *distance{nullptr};
+  sensor::Sensor *speed{nullptr};
+  sensor::Sensor *speed_mph{nullptr};
+  sensor::Sensor *snr{nullptr};
+  text_sensor::TextSensor *direction{nullptr};
+};
 
 class LD2451Component : public Component, public uart::UARTDevice {
  public:
@@ -33,11 +45,20 @@ class LD2451Component : public Component, public uart::UARTDevice {
   void set_speed_mph_sensor(sensor::Sensor *sensor) { this->speed_mph_sensor_ = sensor; }
   void set_snr_sensor(sensor::Sensor *sensor) { this->snr_sensor_ = sensor; }
   void set_direction_text_sensor(text_sensor::TextSensor *sensor) { this->direction_text_sensor_ = sensor; }
+  void set_live_target_angle_sensor(uint8_t slot, sensor::Sensor *sensor);
+  void set_live_target_distance_sensor(uint8_t slot, sensor::Sensor *sensor);
+  void set_live_target_speed_sensor(uint8_t slot, sensor::Sensor *sensor);
+  void set_live_target_speed_mph_sensor(uint8_t slot, sensor::Sensor *sensor);
+  void set_live_target_snr_sensor(uint8_t slot, sensor::Sensor *sensor);
+  void set_live_target_direction_text_sensor(uint8_t slot, text_sensor::TextSensor *sensor);
 
  protected:
   bool extract_frame_();
-  bool parse_payload_(const std::vector<uint8_t> &payload, uint8_t &target_count, ParsedTarget &first_target);
-  void publish_frame_(uint8_t target_count, const ParsedTarget &first_target, bool has_target);
+  bool parse_payload_(const std::vector<uint8_t> &payload, uint8_t &target_count, bool &alarm,
+                      std::vector<ParsedTarget> &targets);
+  void publish_frame_(uint8_t target_count, const std::vector<ParsedTarget> &targets, bool alarm, bool has_targets);
+  void publish_live_target_slot_(uint8_t slot, const LiveTargetOutput &output);
+  void clear_live_target_slot_(uint8_t slot);
 
   std::vector<uint8_t> rx_buffer_;
   uint32_t last_empty_hint_ms_{0};
@@ -52,6 +73,7 @@ class LD2451Component : public Component, public uart::UARTDevice {
   sensor::Sensor *speed_mph_sensor_{nullptr};
   sensor::Sensor *snr_sensor_{nullptr};
   text_sensor::TextSensor *direction_text_sensor_{nullptr};
+  std::array<LiveTargetSensors, kLiveTargetSlotCount> live_target_sensors_{};
   bool detection_active_{false};
   bool idle_published_{false};
   uint32_t last_detection_ms_{0};

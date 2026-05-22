@@ -28,6 +28,37 @@ int main() {
   assert(no_alarm_out.publish);
   assert(no_alarm_out.alarm == false);
 
+  std::vector<ParsedTarget> live_targets{};
+  ParsedTarget live0{};
+  live0.distance = 2;
+  live0.speed = 10;
+  live_targets.push_back(live0);
+  ParsedTarget live1{};
+  live1.distance = 7;
+  live1.speed = 20;
+  live_targets.push_back(live1);
+  ParsedTarget live2{};
+  live2.distance = 9;
+  live2.speed = 30;
+  live_targets.push_back(live2);
+  ParsedTarget live3{};
+  live3.distance = 11;
+  live3.speed = 40;
+  live_targets.push_back(live3);
+
+  const auto live_outputs = build_live_target_outputs(cfg, live_targets);
+  assert(live_outputs.size() == kLiveTargetSlotCount);
+  assert(live_outputs[0].present);
+  assert(live_outputs[0].target.distance == 2);
+  assert(live_outputs[0].corrected_speed > 10.9f && live_outputs[0].corrected_speed < 11.1f);
+  assert(live_outputs[0].corrected_speed_mph > 6.7f && live_outputs[0].corrected_speed_mph < 6.9f);
+  assert(live_outputs[1].present);
+  assert(live_outputs[1].target.distance == 7);
+  assert(live_outputs[2].present);
+  assert(live_outputs[2].target.distance == 9);
+  assert(live_outputs[2].corrected_speed > 32.9f && live_outputs[2].corrected_speed < 33.1f);
+  assert(live_outputs[2].corrected_speed_mph > 20.4f && live_outputs[2].corrected_speed_mph < 20.6f);
+
   // targets beyond max_distance still publish (device-side filter only)
   target.distance = 34;
   assert(compute_target_output(cfg, target).publish);

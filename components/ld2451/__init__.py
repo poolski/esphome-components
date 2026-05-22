@@ -16,60 +16,109 @@ CONF_SPEED = "speed"
 CONF_SPEED_MPH = "speed_mph"
 CONF_SNR = "snr"
 CONF_DIRECTION = "direction"
+LIVE_TARGET_SLOT_NAMES = ("target_1", "target_2", "target_3")
+LIVE_TARGET_SENSOR_SPECS = (
+    (
+        "angle",
+        lambda: sensor.sensor_schema(
+            unit_of_measurement="deg",
+            accuracy_decimals=0,
+            icon="mdi:angle-obtuse",
+        ),
+        "set_live_target_angle_sensor",
+    ),
+    (
+        "distance",
+        lambda: sensor.sensor_schema(
+            unit_of_measurement="m",
+            accuracy_decimals=0,
+            device_class=DEVICE_CLASS_DISTANCE,
+            icon="mdi:map-marker-distance",
+        ),
+        "set_live_target_distance_sensor",
+    ),
+    (
+        "speed",
+        lambda: sensor.sensor_schema(
+            unit_of_measurement="km/h",
+            accuracy_decimals=2,
+            icon="mdi:speedometer",
+        ),
+        "set_live_target_speed_sensor",
+    ),
+    (
+        "speed_mph",
+        lambda: sensor.sensor_schema(
+            unit_of_measurement="mph",
+            accuracy_decimals=2,
+            icon="mdi:speedometer",
+        ),
+        "set_live_target_speed_mph_sensor",
+    ),
+    (
+        "snr",
+        lambda: sensor.sensor_schema(
+            unit_of_measurement="dB",
+            accuracy_decimals=0,
+            icon="mdi:signal",
+        ),
+        "set_live_target_snr_sensor",
+    ),
+    ("direction", lambda: text_sensor.text_sensor_schema(icon="mdi:sign-direction"), "set_live_target_direction_text_sensor"),
+)
 ld2451_ns = cg.esphome_ns.namespace("ld2451")
 LD2451Component = ld2451_ns.class_("LD2451Component", cg.Component, uart.UARTDevice)
 cg.add_global(ld2451_ns.using)
 
-CONFIG_SCHEMA = (
-    cv.Schema(
-        {
-            cv.GenerateID(): cv.declare_id(LD2451Component),
-            cv.Optional("controls"): cv.invalid(
-                "runtime configuration via ESPHome is disabled; configure the LD2451 from the mobile app"
-            ),
-            cv.Optional(CONF_TARGET_COUNT): sensor.sensor_schema(
-                unit_of_measurement="targets",
-                accuracy_decimals=0,
-                icon="mdi:counter",
-            ),
-            cv.Optional(CONF_VEHICLE_DETECTED): binary_sensor.binary_sensor_schema(
-                device_class=DEVICE_CLASS_MOTION,
-                icon="mdi:car",
-            ),
-            cv.Optional(CONF_ANGLE): sensor.sensor_schema(
-                unit_of_measurement="deg",
-                accuracy_decimals=0,
-                icon="mdi:angle-obtuse",
-            ),
-            cv.Optional(CONF_DISTANCE): sensor.sensor_schema(
-                unit_of_measurement="m",
-                accuracy_decimals=0,
-                device_class=DEVICE_CLASS_DISTANCE,
-                icon="mdi:map-marker-distance",
-            ),
-            cv.Optional(CONF_SPEED): sensor.sensor_schema(
-                unit_of_measurement="km/h",
-                accuracy_decimals=2,
-                icon="mdi:speedometer",
-            ),
-            cv.Optional(CONF_SPEED_MPH): sensor.sensor_schema(
-                unit_of_measurement="mph",
-                accuracy_decimals=2,
-                icon="mdi:speedometer",
-            ),
-            cv.Optional(CONF_SNR): sensor.sensor_schema(
-                unit_of_measurement="dB",
-                accuracy_decimals=0,
-                icon="mdi:signal",
-            ),
-            cv.Optional(CONF_DIRECTION): text_sensor.text_sensor_schema(
-                icon="mdi:sign-direction",
-            ),
-        }
-    )
-    .extend(uart.UART_DEVICE_SCHEMA)
-    .extend(cv.COMPONENT_SCHEMA)
-)
+config_schema = {
+    cv.GenerateID(): cv.declare_id(LD2451Component),
+    cv.Optional("controls"): cv.invalid(
+        "runtime configuration via ESPHome is disabled; configure the LD2451 from the mobile app"
+    ),
+    cv.Optional(CONF_TARGET_COUNT): sensor.sensor_schema(
+        unit_of_measurement="targets",
+        accuracy_decimals=0,
+        icon="mdi:counter",
+    ),
+    cv.Optional(CONF_VEHICLE_DETECTED): binary_sensor.binary_sensor_schema(
+        device_class=DEVICE_CLASS_MOTION,
+        icon="mdi:car",
+    ),
+    cv.Optional(CONF_ANGLE): sensor.sensor_schema(
+        unit_of_measurement="deg",
+        accuracy_decimals=0,
+        icon="mdi:angle-obtuse",
+    ),
+    cv.Optional(CONF_DISTANCE): sensor.sensor_schema(
+        unit_of_measurement="m",
+        accuracy_decimals=0,
+        device_class=DEVICE_CLASS_DISTANCE,
+        icon="mdi:map-marker-distance",
+    ),
+    cv.Optional(CONF_SPEED): sensor.sensor_schema(
+        unit_of_measurement="km/h",
+        accuracy_decimals=2,
+        icon="mdi:speedometer",
+    ),
+    cv.Optional(CONF_SPEED_MPH): sensor.sensor_schema(
+        unit_of_measurement="mph",
+        accuracy_decimals=2,
+        icon="mdi:speedometer",
+    ),
+    cv.Optional(CONF_SNR): sensor.sensor_schema(
+        unit_of_measurement="dB",
+        accuracy_decimals=0,
+        icon="mdi:signal",
+    ),
+    cv.Optional(CONF_DIRECTION): text_sensor.text_sensor_schema(
+        icon="mdi:sign-direction",
+    ),
+}
+for slot_name in LIVE_TARGET_SLOT_NAMES:
+    for field_name, schema_factory, _ in LIVE_TARGET_SENSOR_SPECS:
+        config_schema[cv.Optional(f"{slot_name}_{field_name}")] = schema_factory()
+
+CONFIG_SCHEMA = cv.Schema(config_schema).extend(uart.UART_DEVICE_SCHEMA).extend(cv.COMPONENT_SCHEMA)
 
 FINAL_VALIDATE_SCHEMA = uart.final_validate_device_schema(
     "ld2451",
@@ -108,3 +157,24 @@ async def to_code(config):
     if CONF_DIRECTION in config:
         ts = await text_sensor.new_text_sensor(config[CONF_DIRECTION])
         cg.add(var.set_direction_text_sensor(ts))
+    for slot_index, slot_name in enumerate(LIVE_TARGET_SLOT_NAMES):
+        for field_name, _, setter_name in LIVE_TARGET_SENSOR_SPECS:
+            key = f"{slot_name}_{field_name}"
+            if key not in config:
+                continue
+            if field_name == "direction":
+                slot_sensor = await text_sensor.new_text_sensor(config[key])
+            else:
+                slot_sensor = await sensor.new_sensor(config[key])
+            if setter_name == "set_live_target_angle_sensor":
+                cg.add(var.set_live_target_angle_sensor(slot_index, slot_sensor))
+            elif setter_name == "set_live_target_distance_sensor":
+                cg.add(var.set_live_target_distance_sensor(slot_index, slot_sensor))
+            elif setter_name == "set_live_target_speed_sensor":
+                cg.add(var.set_live_target_speed_sensor(slot_index, slot_sensor))
+            elif setter_name == "set_live_target_speed_mph_sensor":
+                cg.add(var.set_live_target_speed_mph_sensor(slot_index, slot_sensor))
+            elif setter_name == "set_live_target_snr_sensor":
+                cg.add(var.set_live_target_snr_sensor(slot_index, slot_sensor))
+            elif setter_name == "set_live_target_direction_text_sensor":
+                cg.add(var.set_live_target_direction_text_sensor(slot_index, slot_sensor))

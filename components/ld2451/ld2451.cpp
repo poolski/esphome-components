@@ -2,6 +2,7 @@
 
 #include "config_state.h"
 #include "target_publisher.h"
+#include <limits>
 #include "esphome/core/log.h"
 #include "esphome/components/uart/uart.h"
 
@@ -12,6 +13,43 @@ static const char *const TAG = "ld2451";
 
 static const uint8_t DATA_HEADER[] = {0xF4, 0xF3, 0xF2, 0xF1};
 static const uint8_t DATA_TAIL[] = {0xF8, 0xF7, 0xF6, 0xF5};
+
+void LD2451Component::set_live_target_angle_sensor(uint8_t slot, sensor::Sensor *sensor) {
+  if (slot < kLiveTargetSlotCount) {
+    this->live_target_sensors_[slot].angle = sensor;
+  }
+}
+
+void LD2451Component::set_live_target_distance_sensor(uint8_t slot, sensor::Sensor *sensor) {
+  if (slot < kLiveTargetSlotCount) {
+    this->live_target_sensors_[slot].distance = sensor;
+  }
+}
+
+void LD2451Component::set_live_target_speed_sensor(uint8_t slot, sensor::Sensor *sensor) {
+  if (slot < kLiveTargetSlotCount) {
+    this->live_target_sensors_[slot].speed = sensor;
+  }
+}
+
+void LD2451Component::set_live_target_speed_mph_sensor(uint8_t slot, sensor::Sensor *sensor) {
+  if (slot < kLiveTargetSlotCount) {
+    this->live_target_sensors_[slot].speed_mph = sensor;
+  }
+}
+
+void LD2451Component::set_live_target_snr_sensor(uint8_t slot, sensor::Sensor *sensor) {
+  if (slot < kLiveTargetSlotCount) {
+    this->live_target_sensors_[slot].snr = sensor;
+  }
+}
+
+void LD2451Component::set_live_target_direction_text_sensor(uint8_t slot, text_sensor::TextSensor *sensor) {
+  if (slot < kLiveTargetSlotCount) {
+    this->live_target_sensors_[slot].direction = sensor;
+  }
+}
+
 void LD2451Component::setup() {
   this->rx_buffer_.reserve(256);
   ESP_LOGI(TAG, "Runtime configuration via ESPHome is disabled");
@@ -55,6 +93,15 @@ void LD2451Component::dump_config() {
   LOG_SENSOR("  ", "Speed MPH", this->speed_mph_sensor_);
   LOG_SENSOR("  ", "SNR", this->snr_sensor_);
   LOG_TEXT_SENSOR("  ", "Direction", this->direction_text_sensor_);
+  for (uint8_t i = 0; i < kLiveTargetSlotCount; i++) {
+    ESP_LOGCONFIG(TAG, "  Target %u:", static_cast<unsigned int>(i + 1));
+    LOG_SENSOR("    ", "Angle", this->live_target_sensors_[i].angle);
+    LOG_SENSOR("    ", "Distance", this->live_target_sensors_[i].distance);
+    LOG_SENSOR("    ", "Speed", this->live_target_sensors_[i].speed);
+    LOG_SENSOR("    ", "Speed MPH", this->live_target_sensors_[i].speed_mph);
+    LOG_SENSOR("    ", "SNR", this->live_target_sensors_[i].snr);
+    LOG_TEXT_SENSOR("    ", "Direction", this->live_target_sensors_[i].direction);
+  }
 }
 
 float LD2451Component::get_setup_priority() const { return setup_priority::DATA; }
@@ -116,28 +163,30 @@ bool LD2451Component::extract_frame_() {
   }
 
   uint8_t target_count = 0;
-  ParsedTarget target{};
-  bool has_target = this->parse_payload_(payload, target_count, target);
+  bool alarm = false;
+  std::vector<ParsedTarget> targets;
+  bool has_targets = this->parse_payload_(payload, target_count, alarm, targets);
 
-  if (!has_target) {
+  if (!has_targets) {
     const uint32_t now = millis();
     if (now - this->last_empty_hint_ms_ > 5000) {
       ESP_LOGD(TAG, "No target payload received. Sensor telemetry is active.");
       this->last_empty_hint_ms_ = now;
     }
   } else {
-    ESP_LOGD(TAG, "Parsed telemetry: targets=%u angle=%ddeg dist=%um speed=%ukm/h dir_raw=0x%02X dir=%s snr=%u",
-             target_count, target.angle, target.distance, target.speed, target.direction, direction_label(target.direction),
-             target.snr);
+    ESP_LOGD(TAG, "Parsed telemetry: targets=%u first_angle=%ddeg first_dist=%um first_speed=%ukm/h first_dir_raw=0x%02X first_dir=%s first_snr=%u",
+             target_count, targets.front().angle, targets.front().distance, targets.front().speed, targets.front().direction,
+             direction_label(targets.front().direction), targets.front().snr);
   }
 
-  this->publish_frame_(target_count, target, has_target);
+  this->publish_frame_(target_count, targets, alarm, has_targets);
 
   this->rx_buffer_.erase(this->rx_buffer_.begin(), this->rx_buffer_.begin() + static_cast<long>(frame_len));
   return true;
 }
 
-bool LD2451Component::parse_payload_(const std::vector<uint8_t> &payload, uint8_t &target_count, ParsedTarget &first_target) {
+bool LD2451Component::parse_payload_(const std::vector<uint8_t> &payload, uint8_t &target_count, bool &alarm,
+                                     std::vector<ParsedTarget> &targets) {
   if (payload.size() < 2) {
     return false;
   }
@@ -152,9 +201,9 @@ bool LD2451Component::parse_payload_(const std::vector<uint8_t> &payload, uint8_
     return false;
   }
 
-  const bool alarm = (payload[1] == 0x01);
-  std::vector<ParsedTarget> candidates;
-  candidates.reserve(target_count);
+  alarm = (payload[1] == 0x01);
+  targets.clear();
+  targets.reserve(target_count);
   for (size_t i = 0; i < target_count; i++) {
     const size_t offset = 2 + i * 5;
     ParsedTarget candidate{};
@@ -163,17 +212,71 @@ bool LD2451Component::parse_payload_(const std::vector<uint8_t> &payload, uint8_
     candidate.direction = payload[offset + 2];
     candidate.speed = payload[offset + 3];
     candidate.snr = payload[offset + 4];
-    candidates.push_back(candidate);
+    targets.push_back(candidate);
   }
 
-  if (!select_nearest_qualifying_target(this->desired_, candidates, first_target)) {
-    return false;
-  }
-  first_target.alarm = alarm;
   return true;
 }
 
-void LD2451Component::publish_frame_(uint8_t target_count, const ParsedTarget &first_target, bool has_target) {
+void LD2451Component::clear_live_target_slot_(uint8_t slot) {
+  if (slot >= kLiveTargetSlotCount) {
+    return;
+  }
+
+  const auto &sensors = this->live_target_sensors_[slot];
+  if (sensors.angle != nullptr) {
+    sensors.angle->publish_state(std::numeric_limits<float>::quiet_NaN());
+  }
+  if (sensors.distance != nullptr) {
+    sensors.distance->publish_state(std::numeric_limits<float>::quiet_NaN());
+  }
+  if (sensors.speed != nullptr) {
+    sensors.speed->publish_state(std::numeric_limits<float>::quiet_NaN());
+  }
+  if (sensors.speed_mph != nullptr) {
+    sensors.speed_mph->publish_state(std::numeric_limits<float>::quiet_NaN());
+  }
+  if (sensors.snr != nullptr) {
+    sensors.snr->publish_state(std::numeric_limits<float>::quiet_NaN());
+  }
+  if (sensors.direction != nullptr) {
+    sensors.direction->publish_state("None");
+  }
+}
+
+void LD2451Component::publish_live_target_slot_(uint8_t slot, const LiveTargetOutput &output) {
+  if (slot >= kLiveTargetSlotCount) {
+    return;
+  }
+
+  if (!output.present) {
+    this->clear_live_target_slot_(slot);
+    return;
+  }
+
+  const auto &sensors = this->live_target_sensors_[slot];
+  if (sensors.angle != nullptr) {
+    sensors.angle->publish_state(output.target.angle);
+  }
+  if (sensors.distance != nullptr) {
+    sensors.distance->publish_state(output.target.distance);
+  }
+  if (sensors.speed != nullptr) {
+    sensors.speed->publish_state(output.corrected_speed);
+  }
+  if (sensors.speed_mph != nullptr) {
+    sensors.speed_mph->publish_state(output.corrected_speed_mph);
+  }
+  if (sensors.snr != nullptr) {
+    sensors.snr->publish_state(output.target.snr);
+  }
+  if (sensors.direction != nullptr) {
+    sensors.direction->publish_state(direction_label(output.target.direction));
+  }
+}
+
+void LD2451Component::publish_frame_(uint8_t target_count, const std::vector<ParsedTarget> &targets, bool alarm,
+                                     bool has_targets) {
   if (this->target_count_sensor_ != nullptr) {
     const float new_count = static_cast<float>(target_count);
     if (!this->target_count_sensor_->has_state() || this->target_count_sensor_->state != new_count) {
@@ -197,46 +300,63 @@ void LD2451Component::publish_frame_(uint8_t target_count, const ParsedTarget &f
     }
   };
 
-  if (!has_target) {
+  if (!has_targets) {
+    for (uint8_t i = 0; i < kLiveTargetSlotCount; i++) {
+      this->clear_live_target_slot_(i);
+    }
     maybe_publish_idle_reset();
     return;
   }
 
-  const TargetOutput output = compute_target_output(this->desired_, first_target);
-  if (!output.publish) {
-    ESP_LOGD(TAG, "Target filtered: distance %u < min_distance %u", first_target.distance,
-             this->desired_.min_distance);
-    maybe_publish_idle_reset();
-    return;
+  const auto live_targets = build_live_target_outputs(this->desired_, targets);
+  for (uint8_t i = 0; i < kLiveTargetSlotCount; i++) {
+    this->publish_live_target_slot_(i, live_targets[i]);
+  }
+
+  if (this->vehicle_detected_binary_sensor_ != nullptr) {
+    this->vehicle_detected_binary_sensor_->publish_state(alarm);
   }
 
   this->last_detection_ms_ = now;
   this->detection_active_ = true;
   this->idle_published_ = false;
 
-  // vehicle_detected fires only when the device alarm flag is set (trigger_count met).
-  // Sensor values (distance, speed, etc.) are published for any qualifying target.
-  if (this->vehicle_detected_binary_sensor_ != nullptr) {
-    this->vehicle_detected_binary_sensor_->publish_state(output.alarm);
+  if (targets.size() > kLiveTargetSlotCount) {
+    ESP_LOGD(TAG, "Frame contains %u targets; exposing first %u live slots", static_cast<unsigned int>(targets.size()),
+             static_cast<unsigned int>(kLiveTargetSlotCount));
   }
 
-  if (this->angle_sensor_ != nullptr) {
-    this->angle_sensor_->publish_state(first_target.angle);
-  }
-  if (this->distance_sensor_ != nullptr) {
-    this->distance_sensor_->publish_state(first_target.distance);
-  }
-  if (this->speed_sensor_ != nullptr) {
-    this->speed_sensor_->publish_state(output.corrected_speed);
-  }
-  if (this->speed_mph_sensor_ != nullptr) {
-    this->speed_mph_sensor_->publish_state(output.corrected_speed_mph);
-  }
-  if (this->snr_sensor_ != nullptr) {
-    this->snr_sensor_->publish_state(first_target.snr);
-  }
-  if (this->direction_text_sensor_ != nullptr) {
-    this->direction_text_sensor_->publish_state(direction_label(first_target.direction));
+  ParsedTarget nearest_target{};
+  const bool has_nearest_target = select_nearest_qualifying_target(this->desired_, targets, nearest_target);
+  if (!has_nearest_target) {
+    ESP_LOGD(TAG, "No qualifying target found for nearest-target entities (min_distance=%u)",
+             this->desired_.min_distance);
+  } else {
+    const TargetOutput output = compute_target_output(this->desired_, nearest_target);
+    // vehicle_detected fires only when the device alarm flag is set (trigger_count met).
+    // Nearest target values are published for the closest qualifying target.
+    if (this->vehicle_detected_binary_sensor_ != nullptr) {
+      this->vehicle_detected_binary_sensor_->publish_state(alarm);
+    }
+
+    if (this->angle_sensor_ != nullptr) {
+      this->angle_sensor_->publish_state(nearest_target.angle);
+    }
+    if (this->distance_sensor_ != nullptr) {
+      this->distance_sensor_->publish_state(nearest_target.distance);
+    }
+    if (this->speed_sensor_ != nullptr) {
+      this->speed_sensor_->publish_state(output.corrected_speed);
+    }
+    if (this->speed_mph_sensor_ != nullptr) {
+      this->speed_mph_sensor_->publish_state(output.corrected_speed_mph);
+    }
+    if (this->snr_sensor_ != nullptr) {
+      this->snr_sensor_->publish_state(nearest_target.snr);
+    }
+    if (this->direction_text_sensor_ != nullptr) {
+      this->direction_text_sensor_->publish_state(direction_label(nearest_target.direction));
+    }
   }
 }
 
