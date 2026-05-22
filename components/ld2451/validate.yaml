@@ -43,6 +43,8 @@ ld2451:
     name: "LD2451 Distance"
   speed:
     name: "LD2451 Speed"
+  speed_mph:
+    name: "LD2451 Speed MPH"
   snr:
     name: "LD2451 SNR"
   direction:

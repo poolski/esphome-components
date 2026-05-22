@@ -52,6 +52,7 @@ void LD2451Component::dump_config() {
   LOG_SENSOR("  ", "Angle", this->angle_sensor_);
   LOG_SENSOR("  ", "Distance", this->distance_sensor_);
   LOG_SENSOR("  ", "Speed", this->speed_sensor_);
+  LOG_SENSOR("  ", "Speed MPH", this->speed_mph_sensor_);
   LOG_SENSOR("  ", "SNR", this->snr_sensor_);
   LOG_TEXT_SENSOR("  ", "Direction", this->direction_text_sensor_);
 }
@@ -227,6 +228,9 @@ void LD2451Component::publish_frame_(uint8_t target_count, const ParsedTarget &f
   }
   if (this->speed_sensor_ != nullptr) {
     this->speed_sensor_->publish_state(output.corrected_speed);
+  }
+  if (this->speed_mph_sensor_ != nullptr) {
+    this->speed_mph_sensor_->publish_state(output.corrected_speed_mph);
   }
   if (this->snr_sensor_ != nullptr) {
     this->snr_sensor_->publish_state(first_target.snr);

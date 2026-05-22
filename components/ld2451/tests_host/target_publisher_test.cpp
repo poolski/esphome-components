@@ -20,6 +20,7 @@ int main() {
   assert(out.publish);
   assert(out.alarm == true);
   assert(out.corrected_speed > 21.9f && out.corrected_speed < 22.1f);
+  assert(out.corrected_speed_mph > 13.6f && out.corrected_speed_mph < 13.7f);
 
   // alarm=false propagates even when target is in range
   target.alarm = false;

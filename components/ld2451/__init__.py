@@ -13,6 +13,7 @@ CONF_VEHICLE_DETECTED = "vehicle_detected"
 CONF_ANGLE = "angle"
 CONF_DISTANCE = "distance"
 CONF_SPEED = "speed"
+CONF_SPEED_MPH = "speed_mph"
 CONF_SNR = "snr"
 CONF_DIRECTION = "direction"
 ld2451_ns = cg.esphome_ns.namespace("ld2451")
@@ -48,6 +49,11 @@ CONFIG_SCHEMA = (
             ),
             cv.Optional(CONF_SPEED): sensor.sensor_schema(
                 unit_of_measurement="km/h",
+                accuracy_decimals=2,
+                icon="mdi:speedometer",
+            ),
+            cv.Optional(CONF_SPEED_MPH): sensor.sensor_schema(
+                unit_of_measurement="mph",
                 accuracy_decimals=2,
                 icon="mdi:speedometer",
             ),
@@ -93,6 +99,9 @@ async def to_code(config):
     if CONF_SPEED in config:
         sens = await sensor.new_sensor(config[CONF_SPEED])
         cg.add(var.set_speed_sensor(sens))
+    if CONF_SPEED_MPH in config:
+        sens = await sensor.new_sensor(config[CONF_SPEED_MPH])
+        cg.add(var.set_speed_mph_sensor(sens))
     if CONF_SNR in config:
         sens = await sensor.new_sensor(config[CONF_SNR])
         cg.add(var.set_snr_sensor(sens))

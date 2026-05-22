@@ -11,6 +11,7 @@ TargetOutput compute_target_output(const SensorSettings &cfg, const ParsedTarget
   out.publish = true;
   out.alarm = target.alarm;
   out.corrected_speed = static_cast<float>(target.speed) * cfg.speed_correction;
+  out.corrected_speed_mph = out.corrected_speed * 0.6213712f;
   return out;
 }
 

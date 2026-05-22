@@ -30,6 +30,7 @@ class LD2451Component : public Component, public uart::UARTDevice {
   void set_angle_sensor(sensor::Sensor *sensor) { this->angle_sensor_ = sensor; }
   void set_distance_sensor(sensor::Sensor *sensor) { this->distance_sensor_ = sensor; }
   void set_speed_sensor(sensor::Sensor *sensor) { this->speed_sensor_ = sensor; }
+  void set_speed_mph_sensor(sensor::Sensor *sensor) { this->speed_mph_sensor_ = sensor; }
   void set_snr_sensor(sensor::Sensor *sensor) { this->snr_sensor_ = sensor; }
   void set_direction_text_sensor(text_sensor::TextSensor *sensor) { this->direction_text_sensor_ = sensor; }
 
@@ -48,6 +49,7 @@ class LD2451Component : public Component, public uart::UARTDevice {
   sensor::Sensor *angle_sensor_{nullptr};
   sensor::Sensor *distance_sensor_{nullptr};
   sensor::Sensor *speed_sensor_{nullptr};
+  sensor::Sensor *speed_mph_sensor_{nullptr};
   sensor::Sensor *snr_sensor_{nullptr};
   text_sensor::TextSensor *direction_text_sensor_{nullptr};
   bool detection_active_{false};
