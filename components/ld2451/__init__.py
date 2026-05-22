@@ -19,6 +19,24 @@ CONF_DIRECTION = "direction"
 LIVE_TARGET_SLOT_NAMES = ("target_1", "target_2", "target_3")
 LIVE_TARGET_SENSOR_SPECS = (
     (
+        "x",
+        lambda: sensor.sensor_schema(
+            unit_of_measurement="m",
+            accuracy_decimals=0,
+            icon="mdi:axis-x-arrow",
+        ),
+        "set_live_target_x_sensor",
+    ),
+    (
+        "y",
+        lambda: sensor.sensor_schema(
+            unit_of_measurement="m",
+            accuracy_decimals=0,
+            icon="mdi:axis-y-arrow",
+        ),
+        "set_live_target_y_sensor",
+    ),
+    (
         "angle",
         lambda: sensor.sensor_schema(
             unit_of_measurement="deg",
@@ -166,7 +184,11 @@ async def to_code(config):
                 slot_sensor = await text_sensor.new_text_sensor(config[key])
             else:
                 slot_sensor = await sensor.new_sensor(config[key])
-            if setter_name == "set_live_target_angle_sensor":
+            if setter_name == "set_live_target_x_sensor":
+                cg.add(var.set_live_target_x_sensor(slot_index, slot_sensor))
+            elif setter_name == "set_live_target_y_sensor":
+                cg.add(var.set_live_target_y_sensor(slot_index, slot_sensor))
+            elif setter_name == "set_live_target_angle_sensor":
                 cg.add(var.set_live_target_angle_sensor(slot_index, slot_sensor))
             elif setter_name == "set_live_target_distance_sensor":
                 cg.add(var.set_live_target_distance_sensor(slot_index, slot_sensor))

@@ -24,6 +24,8 @@ struct TargetOutput {
 struct LiveTargetOutput {
   bool present{false};
   ParsedTarget target{};
+  float x{0.0f};
+  float y{0.0f};
   float corrected_speed{0.0f};
   float corrected_speed_mph{0.0f};
 };

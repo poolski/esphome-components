@@ -20,6 +20,18 @@ void LD2451Component::set_live_target_angle_sensor(uint8_t slot, sensor::Sensor 
   }
 }
 
+void LD2451Component::set_live_target_x_sensor(uint8_t slot, sensor::Sensor *sensor) {
+  if (slot < kLiveTargetSlotCount) {
+    this->live_target_sensors_[slot].x = sensor;
+  }
+}
+
+void LD2451Component::set_live_target_y_sensor(uint8_t slot, sensor::Sensor *sensor) {
+  if (slot < kLiveTargetSlotCount) {
+    this->live_target_sensors_[slot].y = sensor;
+  }
+}
+
 void LD2451Component::set_live_target_distance_sensor(uint8_t slot, sensor::Sensor *sensor) {
   if (slot < kLiveTargetSlotCount) {
     this->live_target_sensors_[slot].distance = sensor;
@@ -95,6 +107,8 @@ void LD2451Component::dump_config() {
   LOG_TEXT_SENSOR("  ", "Direction", this->direction_text_sensor_);
   for (uint8_t i = 0; i < kLiveTargetSlotCount; i++) {
     ESP_LOGCONFIG(TAG, "  Target %u:", static_cast<unsigned int>(i + 1));
+    LOG_SENSOR("    ", "X", this->live_target_sensors_[i].x);
+    LOG_SENSOR("    ", "Y", this->live_target_sensors_[i].y);
     LOG_SENSOR("    ", "Angle", this->live_target_sensors_[i].angle);
     LOG_SENSOR("    ", "Distance", this->live_target_sensors_[i].distance);
     LOG_SENSOR("    ", "Speed", this->live_target_sensors_[i].speed);
@@ -224,6 +238,12 @@ void LD2451Component::clear_live_target_slot_(uint8_t slot) {
   }
 
   const auto &sensors = this->live_target_sensors_[slot];
+  if (sensors.x != nullptr) {
+    sensors.x->publish_state(std::numeric_limits<float>::quiet_NaN());
+  }
+  if (sensors.y != nullptr) {
+    sensors.y->publish_state(std::numeric_limits<float>::quiet_NaN());
+  }
   if (sensors.angle != nullptr) {
     sensors.angle->publish_state(std::numeric_limits<float>::quiet_NaN());
   }
@@ -255,6 +275,12 @@ void LD2451Component::publish_live_target_slot_(uint8_t slot, const LiveTargetOu
   }
 
   const auto &sensors = this->live_target_sensors_[slot];
+  if (sensors.x != nullptr) {
+    sensors.x->publish_state(output.x);
+  }
+  if (sensors.y != nullptr) {
+    sensors.y->publish_state(output.y);
+  }
   if (sensors.angle != nullptr) {
     sensors.angle->publish_state(output.target.angle);
   }

@@ -9,7 +9,7 @@ This component parses LD2451 live data frames and exposes key values as ESPHome 
 | Capability        | Details                                                                                                                                           |
 | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Frame parsing     | Parses LD2451 data frames (`F4 F3 F2 F1 ... F8 F7 F6 F5`)                                                                                         |
-| Published data    | target count, vehicle detected, nearest target angle/distance/speed/speed_mph/SNR/direction, plus live `target_1_*` / `target_2_*` / `target_3_*` frame-order slots |
+| Published data    | target count, vehicle detected, nearest target angle/distance/speed/speed_mph/SNR/direction, plus live `target_1_*` / `target_2_*` / `target_3_*` frame-order slots with `x`, `y`, `angle`, `distance`, `speed`, `speed_mph`, `snr`, and `direction` |
 | Direction mapping | `0x00` => `Approaching`, `0x01` => `Moving away`, idle => `None`                                                                                  |
 
 ## Installation
@@ -89,6 +89,10 @@ ld2451:
     name: "LD2451 Direction"
   target_1_angle:
     name: "LD2451 Target 1 Angle"
+  target_1_x:
+    name: "LD2451 Target 1 X"
+  target_1_y:
+    name: "LD2451 Target 1 Y"
   target_1_distance:
     name: "LD2451 Target 1 Distance"
   target_1_speed:
@@ -123,7 +127,7 @@ It exposes the following sensors:
 | `speed_mph`        | `sensor`        | no       | mph (after `speed_correction`)                                                |
 | `snr`              | `sensor`        | no       | Signal-to-noise ratio (0..255)                                                |
 | `direction`        | `text_sensor`   | no       | `Approaching`, `Moving away`, or `None`                                       |
-| `target_1_*` / `target_2_*` / `target_3_*` | `sensor` / `text_sensor` | no | Live frame-order target slots with `angle`, `distance`, `speed`, `speed_mph`, `snr`, and `direction` |
+| `target_1_*` / `target_2_*` / `target_3_*` | `sensor` / `text_sensor` | no | Live frame-order target slots with `x`, `y`, `angle`, `distance`, `speed`, `speed_mph`, `snr`, and `direction` |
 
 UART validation is enforced for:
 

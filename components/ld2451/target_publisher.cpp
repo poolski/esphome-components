@@ -1,6 +1,10 @@
 #include "target_publisher.h"
 
+#include <cmath>
+
 namespace esphome::ld2451 {
+
+static constexpr float kPi = 3.14159265358979323846f;
 
 TargetOutput compute_target_output(const SensorSettings &cfg, const ParsedTarget &target) {
   // min_distance is a software-only filter; max_distance is enforced by the device.
@@ -21,6 +25,9 @@ std::array<LiveTargetOutput, kLiveTargetSlotCount> build_live_target_outputs(
   for (size_t i = 0; i < out.size() && i < targets.size(); i++) {
     out[i].present = true;
     out[i].target = targets[i];
+    const float angle_rad = static_cast<float>(targets[i].angle) * (kPi / 180.0f);
+    out[i].x = roundf(static_cast<float>(targets[i].distance) * cosf(angle_rad));
+    out[i].y = roundf(static_cast<float>(targets[i].distance) * sinf(angle_rad));
     out[i].corrected_speed = static_cast<float>(targets[i].speed) * cfg.speed_correction;
     out[i].corrected_speed_mph = out[i].corrected_speed * 0.6213712f;
   }

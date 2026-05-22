@@ -31,14 +31,17 @@ int main() {
   std::vector<ParsedTarget> live_targets{};
   ParsedTarget live0{};
   live0.distance = 2;
+  live0.angle = 0;
   live0.speed = 10;
   live_targets.push_back(live0);
   ParsedTarget live1{};
   live1.distance = 7;
+  live1.angle = 90;
   live1.speed = 20;
   live_targets.push_back(live1);
   ParsedTarget live2{};
   live2.distance = 9;
+  live2.angle = -90;
   live2.speed = 30;
   live_targets.push_back(live2);
   ParsedTarget live3{};
@@ -50,12 +53,18 @@ int main() {
   assert(live_outputs.size() == kLiveTargetSlotCount);
   assert(live_outputs[0].present);
   assert(live_outputs[0].target.distance == 2);
+  assert(live_outputs[0].x > 1.9f && live_outputs[0].x < 2.1f);
+  assert(live_outputs[0].y > -0.1f && live_outputs[0].y < 0.1f);
   assert(live_outputs[0].corrected_speed > 10.9f && live_outputs[0].corrected_speed < 11.1f);
   assert(live_outputs[0].corrected_speed_mph > 6.7f && live_outputs[0].corrected_speed_mph < 6.9f);
   assert(live_outputs[1].present);
   assert(live_outputs[1].target.distance == 7);
+  assert(live_outputs[1].x > -0.1f && live_outputs[1].x < 0.1f);
+  assert(live_outputs[1].y > 6.9f && live_outputs[1].y < 7.1f);
   assert(live_outputs[2].present);
   assert(live_outputs[2].target.distance == 9);
+  assert(live_outputs[2].x > -0.1f && live_outputs[2].x < 0.1f);
+  assert(live_outputs[2].y < -8.9f && live_outputs[2].y > -9.1f);
   assert(live_outputs[2].corrected_speed > 32.9f && live_outputs[2].corrected_speed < 33.1f);
   assert(live_outputs[2].corrected_speed_mph > 20.4f && live_outputs[2].corrected_speed_mph < 20.6f);
 

@@ -20,6 +20,8 @@ namespace ld2451 {
 class LD2451Component;
 
 struct LiveTargetSensors {
+  sensor::Sensor *x{nullptr};
+  sensor::Sensor *y{nullptr};
   sensor::Sensor *angle{nullptr};
   sensor::Sensor *distance{nullptr};
   sensor::Sensor *speed{nullptr};
@@ -45,6 +47,8 @@ class LD2451Component : public Component, public uart::UARTDevice {
   void set_speed_mph_sensor(sensor::Sensor *sensor) { this->speed_mph_sensor_ = sensor; }
   void set_snr_sensor(sensor::Sensor *sensor) { this->snr_sensor_ = sensor; }
   void set_direction_text_sensor(text_sensor::TextSensor *sensor) { this->direction_text_sensor_ = sensor; }
+  void set_live_target_x_sensor(uint8_t slot, sensor::Sensor *sensor);
+  void set_live_target_y_sensor(uint8_t slot, sensor::Sensor *sensor);
   void set_live_target_angle_sensor(uint8_t slot, sensor::Sensor *sensor);
   void set_live_target_distance_sensor(uint8_t slot, sensor::Sensor *sensor);
   void set_live_target_speed_sensor(uint8_t slot, sensor::Sensor *sensor);
