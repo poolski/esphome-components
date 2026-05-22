@@ -14,6 +14,7 @@ constexpr size_t kLiveTargetSlotCount = 3;
 
 struct TargetOutput {
   bool publish{false};
+  bool speed_publish{false};
   float corrected_speed{0.0f};
   float corrected_speed_mph{0.0f};
   // Mirrors ParsedTarget::alarm. True only when trigger_count consecutive detections were met.
@@ -26,6 +27,7 @@ struct LiveTargetOutput {
   ParsedTarget target{};
   float x{0.0f};
   float y{0.0f};
+  bool speed_publish{false};
   float corrected_speed{0.0f};
   float corrected_speed_mph{0.0f};
 };

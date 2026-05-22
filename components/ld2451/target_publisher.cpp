@@ -1,10 +1,21 @@
 #include "target_publisher.h"
 
 #include <cmath>
+#include <limits>
 
 namespace esphome::ld2451 {
 
 static constexpr float kPi = 3.14159265358979323846f;
+
+static bool target_speed_is_confident(const SensorSettings &cfg, const ParsedTarget &target) {
+  if (cfg.speed_publish_min_snr != 0 && target.snr < cfg.speed_publish_min_snr) {
+    return false;
+  }
+  if (cfg.speed_publish_max_abs_angle != 0 && std::abs(target.angle) > cfg.speed_publish_max_abs_angle) {
+    return false;
+  }
+  return true;
+}
 
 TargetOutput compute_target_output(const SensorSettings &cfg, const ParsedTarget &target) {
   // min_distance is a software-only filter; max_distance is enforced by the device.
@@ -14,8 +25,14 @@ TargetOutput compute_target_output(const SensorSettings &cfg, const ParsedTarget
   TargetOutput out;
   out.publish = true;
   out.alarm = target.alarm;
-  out.corrected_speed = static_cast<float>(target.speed) * cfg.speed_correction;
-  out.corrected_speed_mph = out.corrected_speed * 0.6213712f;
+  out.speed_publish = target_speed_is_confident(cfg, target);
+  if (out.speed_publish) {
+    out.corrected_speed = static_cast<float>(target.speed) * cfg.speed_correction;
+    out.corrected_speed_mph = out.corrected_speed * 0.6213712f;
+  } else {
+    out.corrected_speed = std::numeric_limits<float>::quiet_NaN();
+    out.corrected_speed_mph = std::numeric_limits<float>::quiet_NaN();
+  }
   return out;
 }
 
@@ -28,8 +45,14 @@ std::array<LiveTargetOutput, kLiveTargetSlotCount> build_live_target_outputs(
     const float angle_rad = static_cast<float>(targets[i].angle) * (kPi / 180.0f);
     out[i].x = roundf(static_cast<float>(targets[i].distance) * cosf(angle_rad));
     out[i].y = roundf(static_cast<float>(targets[i].distance) * sinf(angle_rad));
-    out[i].corrected_speed = static_cast<float>(targets[i].speed) * cfg.speed_correction;
-    out[i].corrected_speed_mph = out[i].corrected_speed * 0.6213712f;
+    out[i].speed_publish = target_speed_is_confident(cfg, targets[i]);
+    if (out[i].speed_publish) {
+      out[i].corrected_speed = static_cast<float>(targets[i].speed) * cfg.speed_correction;
+      out[i].corrected_speed_mph = out[i].corrected_speed * 0.6213712f;
+    } else {
+      out[i].corrected_speed = std::numeric_limits<float>::quiet_NaN();
+      out[i].corrected_speed_mph = std::numeric_limits<float>::quiet_NaN();
+    }
   }
   return out;
 }

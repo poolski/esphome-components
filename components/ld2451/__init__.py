@@ -16,6 +16,8 @@ CONF_SPEED = "speed"
 CONF_SPEED_MPH = "speed_mph"
 CONF_SNR = "snr"
 CONF_DIRECTION = "direction"
+CONF_SPEED_PUBLISH_MIN_SNR = "speed_publish_min_snr"
+CONF_SPEED_PUBLISH_MAX_ABS_ANGLE = "speed_publish_max_abs_angle"
 LIVE_TARGET_SLOT_NAMES = ("target_1", "target_2", "target_3")
 LIVE_TARGET_SENSOR_SPECS = (
     (
@@ -131,6 +133,8 @@ config_schema = {
     cv.Optional(CONF_DIRECTION): text_sensor.text_sensor_schema(
         icon="mdi:sign-direction",
     ),
+    cv.Optional(CONF_SPEED_PUBLISH_MIN_SNR, default=0): cv.int_range(min=0, max=255),
+    cv.Optional(CONF_SPEED_PUBLISH_MAX_ABS_ANGLE, default=0): cv.int_range(min=0, max=90),
 }
 for slot_name in LIVE_TARGET_SLOT_NAMES:
     for field_name, schema_factory, _ in LIVE_TARGET_SENSOR_SPECS:
@@ -175,6 +179,8 @@ async def to_code(config):
     if CONF_DIRECTION in config:
         ts = await text_sensor.new_text_sensor(config[CONF_DIRECTION])
         cg.add(var.set_direction_text_sensor(ts))
+    cg.add(var.set_speed_publish_min_snr(config[CONF_SPEED_PUBLISH_MIN_SNR]))
+    cg.add(var.set_speed_publish_max_abs_angle(config[CONF_SPEED_PUBLISH_MAX_ABS_ANGLE]))
     for slot_index, slot_name in enumerate(LIVE_TARGET_SLOT_NAMES):
         for field_name, _, setter_name in LIVE_TARGET_SENSOR_SPECS:
             key = f"{slot_name}_{field_name}"

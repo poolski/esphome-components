@@ -20,6 +20,10 @@ struct SensorSettings {
   uint8_t trigger_count{1};
   // 0 = device default (equivalent to 4); 3..8 — higher value = lower sensitivity. Device-stored.
   uint8_t min_snr{0};
+  // Software-only filter for speed publication. 0 disables the filter.
+  uint8_t speed_publish_min_snr{0};
+  // Software-only filter for speed publication. 0 disables the filter.
+  uint8_t speed_publish_max_abs_angle{0};
   // Multiplier applied to the published speed value. Software-only.
   float speed_correction{1.0f};
 };

@@ -96,6 +96,9 @@ void LD2451Component::dump_config() {
   ESP_LOGCONFIG(TAG, "LD2451:");
   ESP_LOGCONFIG(TAG, "  Runtime config:      disabled in ESPHome");
   ESP_LOGCONFIG(TAG, "  Min Distance:        %u m (software filter)", this->desired_.min_distance);
+  ESP_LOGCONFIG(TAG, "  Speed Publish Min SNR: %u (software filter)", this->desired_.speed_publish_min_snr);
+  ESP_LOGCONFIG(TAG, "  Speed Publish Max Angle: %u deg (software filter)",
+                this->desired_.speed_publish_max_abs_angle);
   ESP_LOGCONFIG(TAG, "  Speed Correction:    %.2fx (software only)", this->desired_.speed_correction);
   LOG_SENSOR("  ", "Target Count", this->target_count_sensor_);
   LOG_BINARY_SENSOR("  ", "Vehicle Detected", this->vehicle_detected_binary_sensor_);
