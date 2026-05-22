@@ -4,7 +4,7 @@
 
 namespace esphome::ld2451 {
 
-struct RuntimeConfig {
+struct SensorSettings {
   // Range: 0x0A..0xFF (10..100 m). Device-stored; the device enforces this limit in hardware.
   // Not used as an ESPHome software filter — ESPHome publishes whatever the device reports.
   uint8_t max_distance{100};

@@ -1,5 +1,5 @@
 esphome:
-  name: ld2451-runtime-controls
+  name: ld2451-invalid-runtime-controls
 
 esp32:
   board: esp32dev

@@ -5,7 +5,7 @@
 using namespace esphome::ld2451;
 
 int main() {
-  RuntimeConfig cfg{};
+  SensorSettings cfg{};
   cfg.max_distance = 10;
   cfg.min_distance = 20;
   normalize_distance_window(cfg);
@@ -17,15 +17,15 @@ int main() {
   assert(coerce_native_min_snr(2) == 0);
   assert(coerce_native_min_snr(7) == 7);
 
-  RuntimeConfig baseline{};
-  RuntimeConfig same{};
-  assert(runtime_config_equal(baseline, same));
+  SensorSettings baseline{};
+  SensorSettings same{};
+  assert(settings_equal(baseline, same));
 
-  RuntimeConfig changed = baseline;
+  SensorSettings changed = baseline;
   changed.min_distance = 5;
-  assert(!runtime_config_equal(baseline, changed));
+  assert(!settings_equal(baseline, changed));
 
-  RuntimeConfig readback_a{};
+  SensorSettings readback_a{};
   readback_a.max_distance = 20;
   readback_a.detection_direction = 1;
   readback_a.min_speed = 4;
@@ -35,12 +35,12 @@ int main() {
   readback_a.min_distance = 1;
   readback_a.speed_correction = 0.8f;
 
-  RuntimeConfig readback_b = readback_a;
+  SensorSettings readback_b = readback_a;
   readback_b.min_distance = 99;
   readback_b.speed_correction = 1.5f;
-  assert(runtime_config_readback_fields_equal(readback_a, readback_b));
+  assert(settings_readback_fields_equal(readback_a, readback_b));
 
   readback_b.min_snr = 6;
-  assert(!runtime_config_readback_fields_equal(readback_a, readback_b));
+  assert(!settings_readback_fields_equal(readback_a, readback_b));
   return 0;
 }

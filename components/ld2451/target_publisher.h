@@ -15,7 +15,7 @@ struct TargetOutput {
   bool alarm{false};
 };
 
-TargetOutput compute_target_output(const RuntimeConfig &cfg, const ParsedTarget &target);
+TargetOutput compute_target_output(const SensorSettings &cfg, const ParsedTarget &target);
 const char *direction_label(uint8_t direction_raw);
 bool should_publish_idle_reset(bool detection_active, bool idle_published, uint32_t now_ms, uint32_t last_detection_ms,
                                uint8_t no_target_delay_s);

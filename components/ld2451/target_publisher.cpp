@@ -2,7 +2,7 @@
 
 namespace esphome::ld2451 {
 
-TargetOutput compute_target_output(const RuntimeConfig &cfg, const ParsedTarget &target) {
+TargetOutput compute_target_output(const SensorSettings &cfg, const ParsedTarget &target) {
   // min_distance is a software-only filter; max_distance is enforced by the device.
   if (target.distance < cfg.min_distance) {
     return {};

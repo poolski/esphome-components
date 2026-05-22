@@ -5,7 +5,7 @@
 using namespace esphome::ld2451;
 
 int main() {
-  RuntimeConfig cfg{};
+  SensorSettings cfg{};
   cfg.min_distance = 5;
   cfg.max_distance = 10;  // device-side only; does not affect ESPHome publish filter
   cfg.speed_correction = 1.1f;

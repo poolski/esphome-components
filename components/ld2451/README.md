@@ -107,30 +107,9 @@ It exposes the following sensors:
 | `speed`            | `sensor`        | no       | km/h (after `speed_correction`)                                               |
 | `snr`              | `sensor`        | no       | Signal-to-noise ratio (0..255)                                                |
 | `direction`        | `text_sensor`   | no       | `Approaching`, `Moving away`, or `None`                                       |
-| `controls`         | object          | no       | Runtime-configurable entities (see below)                                     |
 
-### `controls` parameters
-
-All device-stored parameters are written to flash and survive power cycles.
-
-| Control               | Range / Options              | Default | Where stored  | Description (from HLK-LD2451 User Manual §5.2)                                                                                                                                                              |
-| --------------------- | ---------------------------- | ------- | ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `max_distance`        | `10..100` m                  | `100`   | Device        | Farthest detection distance. Targets beyond this are ignored by the device.                                                                                                                                 |
-| `min_distance`        | `0..100` m                   | `0`     | Software only | ESPHome publish filter. Targets closer than this are suppressed in Home Assistant. No device equivalent.                                                                                                    |
-| `min_speed`           | `0..120` km/h                | `0`     | Device        | Minimum speed a target must exceed to be reported. Slower targets are ignored.                                                                                                                              |
-| `detection_direction` | `away` / `approach` / `both` | `both`  | Device        | `approach`: same-direction vehicles only. `away`: opposite-direction vehicles only. `both`: all directions.                                                                                                 |
-| `no_target_delay`     | `0..255` s                   | `0`     | Device        | How long after the last detection the device continues reporting the target. Resets if a new detection occurs within this window.                                                                           |
-| `trigger_count`       | `1..10`                      | `1`     | Device        | Consecutive detections required before the device sets its alarm flag. Only `vehicle_detected` is gated on this; sensor data (distance, speed, etc.) is published as soon as any qualifying target appears. |
-| `min_snr`             | `0` or `3..8`                | `0`     | Device        | `0` = device default (equivalent to 4). `3..8`: lower = more sensitive, easier to trigger; higher = less sensitive, harder. Not recommended to change unless needed.                                        |
-| `snr_threshold`       | `0..64`                      | `0`     | Device        | Alternative app-scale SNR input (0..64) that maps to native `min_snr` levels (`0`, `3..8`). Use instead of `min_snr`.                                                                                       |
-| `speed_correction`    | `0.1..4.0`                   | `1.0`   | Software only | Multiplier applied to the published speed value. Does not affect the device.                                                                                                                                |
-
-## Runtime Config Sync
-
-- Device is source of truth on boot.
-- Component reads device config once at startup and populates the `controls` entities.
-- Post-write readback confirms actual device values after any change.
-- Use the `controls` entities in Home Assistant to adjust parameters at runtime.
+Runtime configuration is intentionally not exposed in ESPHome for this component.
+Keep device-side parameters such as `max_distance`, `trigger_count`, and `min_snr` in the LD2451's mobile app or sensor-side UI.
 
 UART validation is enforced for:
 
@@ -145,7 +124,7 @@ UART validation is enforced for:
 | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Target publishing  | Current implementation publishes the nearest qualifying target per frame                                                                                                                                            |
 | No-target behavior | After `no_target_delay`, target fields reset to `0`, direction resets to `None`, and `vehicle_detected` resets to `OFF`                                                                                             |
-| Trigger count      | `vehicle_detected` is gated on the device alarm flag (set only after `trigger_count` consecutive detections). Distance, speed, angle, and SNR are published for any qualifying target, even before the alarm fires. |
+| Runtime settings   | Device-side parameters such as `max_distance`, `trigger_count`, and `min_snr` are not controlled by ESPHome; configure them from the sensor/mobile app.                                                            |
 | Distance filtering | `min_distance` is software-side only: targets closer than this value are suppressed. `max_distance` is device-side only: the device enforces it, so ESPHome publishes whatever the device reports.                  |
 | Speed correction   | `speed_correction` is software-side only: published speed is multiplied by this value                                                                                                                               |
 
@@ -153,33 +132,10 @@ UART validation is enforced for:
 
 Use `vehicle_detected` (`off` -> `on`) as the trigger in HA automations. The speed, distance, angle, SNR, and direction sensors update on qualifying detections and retain their last observed values after detection ends.
 
-## Runtime Controls Example
+## Runtime Settings
 
-Configure all parameters from Home Assistant via `controls:` entities. The device is the source of
-truth on boot; values set here persist to device flash and survive power cycles.
-
-```yaml
-ld2451:
-  id: radar
-  uart_id: uart_bus
-  controls:
-    max_distance:
-      name: "LD2451 Max Distance" # 10..100 m, device-stored
-    min_distance:
-      name: "LD2451 Min Distance" # 0..100 m, software filter only
-    min_speed:
-      name: "LD2451 Min Speed" # 0..120 km/h, device-stored
-    no_target_delay:
-      name: "LD2451 No Target Delay" # 0..255 s, device-stored
-    trigger_count:
-      name: "LD2451 Trigger Count" # 1..10, device-stored
-    snr_threshold:
-      name: "LD2451 SNR Threshold" # 0..64 app scale → native 0/3..8, device-stored
-    speed_correction:
-      name: "LD2451 Speed Correction" # 0.1..4.0 multiplier, software only
-    detection_direction:
-      name: "LD2451 Detection Direction" # away / approach / both, device-stored
-```
+ESPHome no longer exposes runtime configuration entities for this component.
+Keep the LD2451 tuned from its own mobile app or sensor-side configuration UI.
 
 ## Fast Host Tests
 
@@ -202,8 +158,8 @@ At `DEBUG`, the component logs:
 
 | Log type          | Details                                                                      |
 | ----------------- | ---------------------------------------------------------------------------- |
-| Parsed frames     | decoded values (`targets`, `angle`, `distance`, `speed`, `direction`, `snr`) |
-| Empty-frame hints | periodic hints when only empty frames are received                           |
+| Parsed telemetry  | decoded target values (`targets`, `angle`, `distance`, `speed`, `direction`, `snr`) |
+| Telemetry hints   | periodic hints when the sensor is sending data but no target payload is present |
 
 Important for pre-install bench checks: you may need large, deliberate movement to trigger detection
 (for example, walking or running toward the sensor, or broad hand/body motion). Small or static motion often does not
@@ -215,9 +171,9 @@ trigger frames, especially with restrictive sensor-side settings.
    - `baud_rate: 115200`
    - correct `rx_pin` wiring from sensor TX
    - `external_components` uses `source: github://poolski/esphome-components@main`
-2. Turn on debug logs and watch runtime frames
+2. Turn on debug logs and watch runtime telemetry
    - set `logger.level: DEBUG`
-   - look for LD2451 debug lines (parsed frames and empty-frame hints)
+   - look for LD2451 debug lines (parsed telemetry, heartbeat frames, and no-target hints)
 3. Use deliberate movement for bench validation before installation
    - move directly toward sensor with larger motion (walk/run toward it)
    - if needed, test with broad hand/body movement at close range
