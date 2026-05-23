@@ -1,5 +1,4 @@
 #include <cassert>
-#include <cmath>
 #include <vector>
 
 #include "../target_publisher.h"
@@ -24,7 +23,6 @@ int main() {
   const TargetOutput out = compute_target_output(cfg, target);
   assert(out.publish);
   assert(out.alarm == true);
-  assert(out.speed_publish);
   assert(out.corrected_speed > 21.9f && out.corrected_speed < 22.1f);
   assert(out.corrected_speed_mph > 13.6f && out.corrected_speed_mph < 13.7f);
 
@@ -37,10 +35,7 @@ int main() {
   target.snr = 12;
   target.angle = 70;
   const TargetOutput filtered_speed = compute_target_output(cfg, target);
-  assert(filtered_speed.publish);
-  assert(!filtered_speed.speed_publish);
-  assert(std::isnan(filtered_speed.corrected_speed));
-  assert(std::isnan(filtered_speed.corrected_speed_mph));
+  assert(!filtered_speed.publish);
 
   std::vector<ParsedTarget> live_targets{};
   ParsedTarget live0{};
@@ -70,27 +65,16 @@ int main() {
   assert(live_outputs.size() == kLiveTargetSlotCount);
   assert(live_outputs[0].present);
   assert(live_outputs[0].target.distance == 2);
-  assert(live_outputs[0].speed_publish);
   assert(live_outputs[0].x > 1.9f && live_outputs[0].x < 2.1f);
   assert(live_outputs[0].y > -0.1f && live_outputs[0].y < 0.1f);
   assert(live_outputs[0].corrected_speed > 10.9f && live_outputs[0].corrected_speed < 11.1f);
   assert(live_outputs[0].corrected_speed_mph > 6.7f && live_outputs[0].corrected_speed_mph < 6.9f);
-  assert(live_outputs[1].present);
-  assert(live_outputs[1].target.distance == 7);
-  assert(!live_outputs[1].speed_publish);
-  assert(live_outputs[1].x > -0.1f && live_outputs[1].x < 0.1f);
-  assert(live_outputs[1].y > 6.9f && live_outputs[1].y < 7.1f);
-  assert(std::isnan(live_outputs[1].corrected_speed));
-  assert(std::isnan(live_outputs[1].corrected_speed_mph));
-  assert(live_outputs[2].present);
-  assert(live_outputs[2].target.distance == 9);
-  assert(!live_outputs[2].speed_publish);
-  assert(live_outputs[2].x > -0.1f && live_outputs[2].x < 0.1f);
-  assert(live_outputs[2].y < -8.9f && live_outputs[2].y > -9.1f);
-  assert(std::isnan(live_outputs[2].corrected_speed));
-  assert(std::isnan(live_outputs[2].corrected_speed_mph));
+  assert(!live_outputs[1].present);
+  assert(!live_outputs[2].present);
 
   // targets beyond max_distance still publish (device-side filter only)
+  target.snr = 22;
+  target.angle = 12;
   target.distance = 34;
   assert(compute_target_output(cfg, target).publish);
 
@@ -101,9 +85,13 @@ int main() {
   std::vector<ParsedTarget> targets{};
   ParsedTarget near_target{};
   near_target.distance = 4;
+  near_target.snr = 22;
+  near_target.angle = 0;
   targets.push_back(near_target);
   ParsedTarget far_target{};
   far_target.distance = 7;
+  far_target.snr = 22;
+  far_target.angle = 0;
   targets.push_back(far_target);
   ParsedTarget selected{};
   assert(select_nearest_qualifying_target(cfg, targets, selected));

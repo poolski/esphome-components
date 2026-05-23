@@ -267,6 +267,16 @@ void LD2451Component::clear_live_target_slot_(uint8_t slot) {
   }
 }
 
+static size_t count_present_targets(const std::array<LiveTargetOutput, kLiveTargetSlotCount> &outputs) {
+  size_t count = 0;
+  for (const auto &output : outputs) {
+    if (output.present) {
+      count++;
+    }
+  }
+  return count;
+}
+
 void LD2451Component::publish_live_target_slot_(uint8_t slot, const LiveTargetOutput &output) {
   if (slot >= kLiveTargetSlotCount) {
     return;
@@ -306,8 +316,11 @@ void LD2451Component::publish_live_target_slot_(uint8_t slot, const LiveTargetOu
 
 void LD2451Component::publish_frame_(uint8_t target_count, const std::vector<ParsedTarget> &targets, bool alarm,
                                      bool has_targets) {
+  const auto live_targets = build_live_target_outputs(this->desired_, targets);
+  const size_t confident_target_count = count_present_targets(live_targets);
+
   if (this->target_count_sensor_ != nullptr) {
-    const float new_count = static_cast<float>(target_count);
+    const float new_count = static_cast<float>(confident_target_count);
     if (!this->target_count_sensor_->has_state() || this->target_count_sensor_->state != new_count) {
       this->target_count_sensor_->publish_state(new_count);
     }
@@ -329,7 +342,7 @@ void LD2451Component::publish_frame_(uint8_t target_count, const std::vector<Par
     }
   };
 
-  if (!has_targets) {
+  if (!has_targets || confident_target_count == 0) {
     for (uint8_t i = 0; i < kLiveTargetSlotCount; i++) {
       this->clear_live_target_slot_(i);
     }
@@ -337,7 +350,6 @@ void LD2451Component::publish_frame_(uint8_t target_count, const std::vector<Par
     return;
   }
 
-  const auto live_targets = build_live_target_outputs(this->desired_, targets);
   for (uint8_t i = 0; i < kLiveTargetSlotCount; i++) {
     this->publish_live_target_slot_(i, live_targets[i]);
   }
@@ -351,8 +363,8 @@ void LD2451Component::publish_frame_(uint8_t target_count, const std::vector<Par
   this->idle_published_ = false;
 
   if (targets.size() > kLiveTargetSlotCount) {
-    ESP_LOGD(TAG, "Frame contains %u targets; exposing first %u live slots", static_cast<unsigned int>(targets.size()),
-             static_cast<unsigned int>(kLiveTargetSlotCount));
+    ESP_LOGD(TAG, "Frame contains %u targets; exposing first %u live slots",
+             static_cast<unsigned int>(targets.size()), static_cast<unsigned int>(kLiveTargetSlotCount));
   }
 
   ParsedTarget nearest_target{};
@@ -386,6 +398,10 @@ void LD2451Component::publish_frame_(uint8_t target_count, const std::vector<Par
     if (this->direction_text_sensor_ != nullptr) {
       this->direction_text_sensor_->publish_state(direction_label(nearest_target.direction));
     }
+  }
+
+  if (confident_target_count < target_count) {
+    ESP_LOGD(TAG, "Filtered %u low-confidence targets from frame", static_cast<unsigned int>(target_count - confident_target_count));
   }
 }
 

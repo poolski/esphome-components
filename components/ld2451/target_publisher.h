@@ -14,7 +14,6 @@ constexpr size_t kLiveTargetSlotCount = 3;
 
 struct TargetOutput {
   bool publish{false};
-  bool speed_publish{false};
   float corrected_speed{0.0f};
   float corrected_speed_mph{0.0f};
   // Mirrors ParsedTarget::alarm. True only when trigger_count consecutive detections were met.
@@ -27,12 +26,12 @@ struct LiveTargetOutput {
   ParsedTarget target{};
   float x{0.0f};
   float y{0.0f};
-  bool speed_publish{false};
   float corrected_speed{0.0f};
   float corrected_speed_mph{0.0f};
 };
 
 TargetOutput compute_target_output(const SensorSettings &cfg, const ParsedTarget &target);
+bool target_is_confident(const SensorSettings &cfg, const ParsedTarget &target);
 std::array<LiveTargetOutput, kLiveTargetSlotCount> build_live_target_outputs(
     const SensorSettings &cfg, const std::vector<ParsedTarget> &targets);
 bool select_nearest_qualifying_target(const SensorSettings &cfg, const std::vector<ParsedTarget> &targets,

@@ -1,13 +1,12 @@
 #include "target_publisher.h"
 
 #include <cmath>
-#include <limits>
 
 namespace esphome::ld2451 {
 
 static constexpr float kPi = 3.14159265358979323846f;
 
-static bool target_speed_is_confident(const SensorSettings &cfg, const ParsedTarget &target) {
+bool target_is_confident(const SensorSettings &cfg, const ParsedTarget &target) {
   if (cfg.speed_publish_min_snr != 0 && target.snr < cfg.speed_publish_min_snr) {
     return false;
   }
@@ -19,20 +18,14 @@ static bool target_speed_is_confident(const SensorSettings &cfg, const ParsedTar
 
 TargetOutput compute_target_output(const SensorSettings &cfg, const ParsedTarget &target) {
   // min_distance is a software-only filter; max_distance is enforced by the device.
-  if (target.distance < cfg.min_distance) {
+  if (target.distance < cfg.min_distance || !target_is_confident(cfg, target)) {
     return {};
   }
   TargetOutput out;
   out.publish = true;
   out.alarm = target.alarm;
-  out.speed_publish = target_speed_is_confident(cfg, target);
-  if (out.speed_publish) {
-    out.corrected_speed = static_cast<float>(target.speed) * cfg.speed_correction;
-    out.corrected_speed_mph = out.corrected_speed * 0.6213712f;
-  } else {
-    out.corrected_speed = std::numeric_limits<float>::quiet_NaN();
-    out.corrected_speed_mph = std::numeric_limits<float>::quiet_NaN();
-  }
+  out.corrected_speed = static_cast<float>(target.speed) * cfg.speed_correction;
+  out.corrected_speed_mph = out.corrected_speed * 0.6213712f;
   return out;
 }
 
@@ -40,19 +33,16 @@ std::array<LiveTargetOutput, kLiveTargetSlotCount> build_live_target_outputs(
     const SensorSettings &cfg, const std::vector<ParsedTarget> &targets) {
   std::array<LiveTargetOutput, kLiveTargetSlotCount> out{};
   for (size_t i = 0; i < out.size() && i < targets.size(); i++) {
+    if (!target_is_confident(cfg, targets[i])) {
+      continue;
+    }
     out[i].present = true;
     out[i].target = targets[i];
     const float angle_rad = static_cast<float>(targets[i].angle) * (kPi / 180.0f);
     out[i].x = roundf(static_cast<float>(targets[i].distance) * cosf(angle_rad));
     out[i].y = roundf(static_cast<float>(targets[i].distance) * sinf(angle_rad));
-    out[i].speed_publish = target_speed_is_confident(cfg, targets[i]);
-    if (out[i].speed_publish) {
-      out[i].corrected_speed = static_cast<float>(targets[i].speed) * cfg.speed_correction;
-      out[i].corrected_speed_mph = out[i].corrected_speed * 0.6213712f;
-    } else {
-      out[i].corrected_speed = std::numeric_limits<float>::quiet_NaN();
-      out[i].corrected_speed_mph = std::numeric_limits<float>::quiet_NaN();
-    }
+    out[i].corrected_speed = static_cast<float>(targets[i].speed) * cfg.speed_correction;
+    out[i].corrected_speed_mph = out[i].corrected_speed * 0.6213712f;
   }
   return out;
 }
@@ -61,7 +51,7 @@ bool select_nearest_qualifying_target(const SensorSettings &cfg, const std::vect
                                       ParsedTarget &selected) {
   bool has_selected = false;
   for (const auto &target : targets) {
-    if (target.distance < cfg.min_distance) {
+    if (target.distance < cfg.min_distance || !target_is_confident(cfg, target)) {
       continue;
     }
     if (!has_selected || target.distance < selected.distance) {
