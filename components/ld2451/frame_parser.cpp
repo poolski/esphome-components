@@ -5,6 +5,7 @@ namespace esphome::ld2451 {
 namespace {
 static constexpr uint8_t DATA_HEADER[] = {0xF4, 0xF3, 0xF2, 0xF1};
 static constexpr uint8_t DATA_TAIL[] = {0xF8, 0xF7, 0xF6, 0xF5};
+static constexpr uint8_t CONFIG_HEADER[] = {0xFD, 0xFC, 0xFB, 0xFA};
 
 bool parse_target_block(const std::vector<uint8_t> &payload, size_t offset, ParsedTarget &target) {
   if (offset + 5 > payload.size()) {
@@ -75,6 +76,27 @@ bool FrameParser::pop(ParsedFrame &frame) {
   }
 
   if (header_pos == this->buffer_.size()) {
+    // No data header found. Check if there's a config/ACK frame we can skip wholesale.
+    for (size_t i = 0; i + 4 <= this->buffer_.size(); i++) {
+      if (this->buffer_[i] == CONFIG_HEADER[0] && this->buffer_[i + 1] == CONFIG_HEADER[1] &&
+          this->buffer_[i + 2] == CONFIG_HEADER[2] && this->buffer_[i + 3] == CONFIG_HEADER[3]) {
+        // Need at least 6 bytes (header + length) to read the payload length.
+        if (i + 6 > this->buffer_.size()) {
+          break;
+        }
+        const uint16_t cfg_payload_len =
+            static_cast<uint16_t>(this->buffer_[i + 4]) | (static_cast<uint16_t>(this->buffer_[i + 5]) << 8);
+        const size_t cfg_frame_len = static_cast<size_t>(cfg_payload_len) + 10;
+        if (i + cfg_frame_len > this->buffer_.size()) {
+          // Incomplete config frame — wait for more data.
+          break;
+        }
+        // Discard everything up to and including the complete config frame.
+        this->buffer_.erase(this->buffer_.begin(), this->buffer_.begin() + static_cast<long>(i + cfg_frame_len));
+        return false;
+      }
+    }
+
     if (this->buffer_.size() > 3) {
       this->buffer_.erase(this->buffer_.begin(), this->buffer_.end() - 3);
     }
@@ -99,7 +121,7 @@ bool FrameParser::pop(ParsedFrame &frame) {
   if (this->buffer_[tail_pos] != DATA_TAIL[0] || this->buffer_[tail_pos + 1] != DATA_TAIL[1] ||
       this->buffer_[tail_pos + 2] != DATA_TAIL[2] || this->buffer_[tail_pos + 3] != DATA_TAIL[3]) {
     this->buffer_.erase(this->buffer_.begin());
-    return true;
+    return false;  // Fix 1: tail mismatch is not a successful pop
   }
 
   std::vector<uint8_t> payload;

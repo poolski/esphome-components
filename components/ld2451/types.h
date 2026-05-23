@@ -31,6 +31,10 @@ struct SensorSettings {
 struct ParsedTarget {
   int angle{0};
   uint8_t distance{0};
+  // 0x00 = Approaching (towards sensor), 0x01 = Moving away.
+  // jbeale monitor and Fiooodooor LD245X library agree on this encoding.
+  // Madproforg's notes flag ambiguity in the official PDF; the
+  // example code and third-party implementations use 0 = towards.
   uint8_t direction{0};
   uint8_t speed{0};
   uint8_t snr{0};

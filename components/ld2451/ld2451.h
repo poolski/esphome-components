@@ -59,7 +59,7 @@ class LD2451Component : public Component, public uart::UARTDevice {
   void set_live_target_direction_text_sensor(uint8_t slot, text_sensor::TextSensor *sensor);
 
  protected:
-  bool extract_frame_();
+  bool extract_frame_(bool &frame_produced);
   bool parse_payload_(const std::vector<uint8_t> &payload, uint8_t &target_count, bool &alarm,
                       std::vector<ParsedTarget> &targets);
   void publish_frame_(uint8_t target_count, const std::vector<ParsedTarget> &targets, bool alarm, bool has_targets);
