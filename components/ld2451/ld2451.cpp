@@ -13,6 +13,8 @@ static const char *const TAG = "ld2451";
 
 static const uint8_t DATA_HEADER[] = {0xF4, 0xF3, 0xF2, 0xF1};
 static const uint8_t DATA_TAIL[] = {0xF8, 0xF7, 0xF6, 0xF5};
+static const uint8_t CONFIG_HEADER[] = {0xFD, 0xFC, 0xFB, 0xFA};
+static const uint8_t CONFIG_TAIL[]   = {0x04, 0x03, 0x02, 0x01};
 
 void LD2451Component::set_live_target_angle_sensor(uint8_t slot, sensor::Sensor *sensor) {
   if (slot < kLiveTargetSlotCount) {
@@ -79,11 +81,14 @@ void LD2451Component::loop() {
     bytes_read++;
   }
 
-  bool parsed_frame = false;
-  while (this->extract_frame_()) {
-    parsed_frame = true;
+  bool any_frame = false;
+  bool keep_going = true;
+  while (keep_going) {
+    bool frame_produced = false;
+    keep_going = this->extract_frame_(frame_produced);
+    any_frame |= frame_produced;
   }
-  if (bytes_read > 0 && !parsed_frame) {
+  if (bytes_read > 0 && !any_frame) {
     if (now - this->last_rx_activity_log_ms_ > 5000) {
       ESP_LOGD(TAG, "RX activity: read=%u bytes, buffered=%u bytes", static_cast<unsigned int>(bytes_read),
                static_cast<unsigned int>(this->rx_buffer_.size()));
@@ -123,7 +128,7 @@ void LD2451Component::dump_config() {
 
 float LD2451Component::get_setup_priority() const { return setup_priority::DATA; }
 
-bool LD2451Component::extract_frame_() {
+bool LD2451Component::extract_frame_(bool &frame_produced) {
   if (this->rx_buffer_.size() < 10) {
     return false;
   }
@@ -138,6 +143,35 @@ bool LD2451Component::extract_frame_() {
   }
 
   if (header_pos == this->rx_buffer_.size()) {
+    // No data header found. Check for a config/ACK frame and skip it cleanly.
+    size_t config_pos = this->rx_buffer_.size();
+    for (size_t i = 0; i + 4 <= this->rx_buffer_.size(); i++) {
+      if (this->rx_buffer_[i] == CONFIG_HEADER[0] && this->rx_buffer_[i + 1] == CONFIG_HEADER[1] &&
+          this->rx_buffer_[i + 2] == CONFIG_HEADER[2] && this->rx_buffer_[i + 3] == CONFIG_HEADER[3]) {
+        config_pos = i;
+        break;
+      }
+    }
+    if (config_pos < this->rx_buffer_.size()) {
+      // Found a config header. Need at least 10 bytes (header + len + tail) to read the length.
+      const size_t bytes_from_header = this->rx_buffer_.size() - config_pos;
+      if (bytes_from_header >= 10) {
+        const uint16_t payload_len = static_cast<uint16_t>(this->rx_buffer_[config_pos + 4]) |
+                                     (static_cast<uint16_t>(this->rx_buffer_[config_pos + 5]) << 8);
+        const size_t frame_len = static_cast<size_t>(payload_len) + 10;
+        if (bytes_from_header >= frame_len) {
+          ESP_LOGD(TAG, "Config/ACK frame skipped (payload_len=%u)", payload_len);
+          this->rx_buffer_.erase(this->rx_buffer_.begin(),
+                                 this->rx_buffer_.begin() + static_cast<long>(config_pos + frame_len));
+          return true;
+        }
+        // Not enough bytes yet for the full config frame; leave the buffer untouched.
+        return false;
+      }
+      // Not enough bytes yet to read the length; leave the buffer untouched.
+      return false;
+    }
+    // No config header either — discard all but the last 3 bytes (may be a partial header).
     if (this->rx_buffer_.size() > 3) {
       this->rx_buffer_.erase(this->rx_buffer_.begin(), this->rx_buffer_.end() - 3);
     }
@@ -199,6 +233,7 @@ bool LD2451Component::extract_frame_() {
   this->publish_frame_(target_count, targets, alarm, has_targets);
 
   this->rx_buffer_.erase(this->rx_buffer_.begin(), this->rx_buffer_.begin() + static_cast<long>(frame_len));
+  frame_produced = true;
   return true;
 }
 
