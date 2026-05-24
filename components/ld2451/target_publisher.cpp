@@ -16,6 +16,16 @@ bool target_is_confident(const SensorSettings &cfg, const ParsedTarget &target) 
   return true;
 }
 
+std::string confidence_filter_reason(const SensorSettings &cfg, const ParsedTarget &target) {
+  if (cfg.speed_publish_max_abs_angle != 0 && std::abs(target.angle) > cfg.speed_publish_max_abs_angle) {
+    return "first_angle > speed_publish_max_abs_angle";
+  }
+  if (cfg.speed_publish_min_snr != 0 && target.snr < cfg.speed_publish_min_snr) {
+    return "first_snr < speed_publish_min_snr";
+  }
+  return {};
+}
+
 TargetOutput compute_target_output(const SensorSettings &cfg, const ParsedTarget &target) {
   // min_distance is a software-only filter; max_distance is enforced by the device.
   if (target.distance < cfg.min_distance || !target_is_confident(cfg, target)) {

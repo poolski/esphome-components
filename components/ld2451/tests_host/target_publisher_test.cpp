@@ -34,6 +34,7 @@ int main() {
 
   target.snr = 12;
   target.angle = 70;
+  assert(confidence_filter_reason(cfg, target) == std::string("first_angle > speed_publish_max_abs_angle"));
   const TargetOutput filtered_speed = compute_target_output(cfg, target);
   assert(!filtered_speed.publish);
 

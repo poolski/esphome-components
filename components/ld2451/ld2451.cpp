@@ -14,6 +14,8 @@ static const char *const TAG = "ld2451";
 static const uint8_t DATA_HEADER[] = {0xF4, 0xF3, 0xF2, 0xF1};
 static const uint8_t DATA_TAIL[] = {0xF8, 0xF7, 0xF6, 0xF5};
 
+static size_t count_present_targets(const std::array<LiveTargetOutput, kLiveTargetSlotCount> &outputs);
+
 void LD2451Component::set_live_target_angle_sensor(uint8_t slot, sensor::Sensor *sensor) {
   if (slot < kLiveTargetSlotCount) {
     this->live_target_sensors_[slot].angle = sensor;
@@ -183,6 +185,8 @@ bool LD2451Component::extract_frame_() {
   bool alarm = false;
   std::vector<ParsedTarget> targets;
   bool has_targets = this->parse_payload_(payload, target_count, alarm, targets);
+  const auto live_targets = build_live_target_outputs(this->desired_, targets);
+  const size_t confident_target_count = count_present_targets(live_targets);
 
   if (!has_targets) {
     const uint32_t now = millis();
@@ -190,10 +194,24 @@ bool LD2451Component::extract_frame_() {
       ESP_LOGD(TAG, "No target payload received. Sensor telemetry is active.");
       this->last_empty_hint_ms_ = now;
     }
+  } else if (confident_target_count == 0 && !targets.empty()) {
+    const std::string reason = confidence_filter_reason(this->desired_, targets.front());
+    ESP_LOGD(TAG, "Ignored target due to low confidence. [%s]", reason.c_str());
   } else {
-    ESP_LOGD(TAG, "Parsed telemetry: targets=%u first_angle=%ddeg first_dist=%um first_speed=%ukm/h first_dir_raw=0x%02X first_dir=%s first_snr=%u",
-             target_count, targets.front().angle, targets.front().distance, targets.front().speed, targets.front().direction,
-             direction_label(targets.front().direction), targets.front().snr);
+    const LiveTargetOutput *first_present = nullptr;
+    for (const auto &candidate : live_targets) {
+      if (candidate.present) {
+        first_present = &candidate;
+        break;
+      }
+    }
+    if (first_present != nullptr) {
+      ESP_LOGD(TAG,
+               "Parsed telemetry: targets=%u first_angle=%ddeg first_dist=%um first_speed=%ukm/h first_dir_raw=0x%02X first_dir=%s first_snr=%u",
+               target_count, first_present->target.angle, first_present->target.distance, first_present->target.speed,
+               first_present->target.direction, direction_label(first_present->target.direction),
+               first_present->target.snr);
+    }
   }
 
   this->publish_frame_(target_count, targets, alarm, has_targets);
