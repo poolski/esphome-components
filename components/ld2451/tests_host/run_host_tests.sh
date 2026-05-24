@@ -18,3 +18,10 @@ clang++ -std=c++17 -Wall -Wextra -pedantic \
   components/ld2451/target_publisher.cpp \
   -Icomponents/ld2451 -o /tmp/ld2451-target-publisher-test
 /tmp/ld2451-target-publisher-test
+
+clang++ -std=c++17 -Wall -Wextra -pedantic \
+  components/ld2451/tests_host/target_slot_stats_test.cpp \
+  components/ld2451/target_slot_stats.cpp \
+  components/ld2451/target_publisher.cpp \
+  -Icomponents/ld2451 -o /tmp/ld2451-target-slot-stats-test
+/tmp/ld2451-target-slot-stats-test

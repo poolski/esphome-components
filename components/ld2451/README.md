@@ -9,7 +9,7 @@ This component parses LD2451 live data frames and exposes key values as ESPHome 
 | Capability        | Details                                                                                                                                           |
 | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Frame parsing     | Parses LD2451 data frames (`F4 F3 F2 F1 ... F8 F7 F6 F5`)                                                                                         |
-| Published data    | target count, vehicle detected, nearest target angle/distance/speed/speed_mph/SNR/direction, plus live `target_1_*` / `target_2_*` / `target_3_*` frame-order slots with `x`, `y`, `angle`, `distance`, `speed`, `speed_mph`, `snr`, and `direction` |
+| Published data    | target count, vehicle detected, nearest target angle/distance/speed/speed_mph/SNR/direction, plus live `target_1_*` / `target_2_*` / `target_3_*` frame-order slots with `x`, `y`, `angle`, `distance`, `speed`, `speed_mph`, `snr`, and `direction`, plus slot-local rolling `*_min` / `*_max` / `*_avg` summary sensors for `distance`, `speed`, `speed_mph`, and `snr` |
 | Direction mapping | `0x00` => `Approaching`, `0x01` => `Moving away`, idle => `None`                                                                                  |
 
 ## Installation
@@ -104,6 +104,30 @@ ld2451:
     name: "LD2451 Target 1 SNR"
   target_1_direction:
     name: "LD2451 Target 1 Direction"
+  target_1_distance_min:
+    name: "LD2451 Target 1 Distance Min"
+  target_1_distance_max:
+    name: "LD2451 Target 1 Distance Max"
+  target_1_distance_avg:
+    name: "LD2451 Target 1 Distance Avg"
+  target_1_speed_min:
+    name: "LD2451 Target 1 Speed Min"
+  target_1_speed_max:
+    name: "LD2451 Target 1 Speed Max"
+  target_1_speed_avg:
+    name: "LD2451 Target 1 Speed Avg"
+  target_1_speed_mph_min:
+    name: "LD2451 Target 1 Speed MPH Min"
+  target_1_speed_mph_max:
+    name: "LD2451 Target 1 Speed MPH Max"
+  target_1_speed_mph_avg:
+    name: "LD2451 Target 1 Speed MPH Avg"
+  target_1_snr_min:
+    name: "LD2451 Target 1 SNR Min"
+  target_1_snr_max:
+    name: "LD2451 Target 1 SNR Max"
+  target_1_snr_avg:
+    name: "LD2451 Target 1 SNR Avg"
   # Repeat the same pattern for target_2_* and target_3_*
 ```
 
@@ -130,6 +154,7 @@ It exposes the following sensors:
 | `direction`        | `text_sensor`   | no       | `Approaching`, `Moving away`, or `None`                                       |
 | `speed_publish_max_abs_angle` | number | no    | Maximum absolute angle allowed before a target is published at all           |
 | `target_1_*` / `target_2_*` / `target_3_*` | `sensor` / `text_sensor` | no | Live frame-order target slots with `x`, `y`, `angle`, `distance`, `speed`, `speed_mph`, `snr`, and `direction` |
+| `target_[1-3]_{distance,speed,speed_mph,snr}_{min,max,avg}` | `sensor` | no | Slot-local rolling summaries; reset to `NaN` when the slot disappears |
 
 UART validation is enforced for:
 
@@ -142,7 +167,7 @@ UART validation is enforced for:
 
 | Topic              | Detail                                                                                                                                                                                                              |
 | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Target publishing  | Current implementation publishes the nearest qualifying target per frame and also exposes the first three raw targets as live frame-order slots                                                                   |
+| Target publishing  | Current implementation publishes the nearest qualifying target per frame, exposes the first three raw targets as live frame-order slots, and keeps rolling min/max/avg stats for `distance`, `speed`, `speed_mph`, and `snr` within each live slot |
 | No-target behavior | After `no_target_delay`, nearest-target fields reset to `0`, live target slots reset to `NaN` / `None`, and `vehicle_detected` resets to `OFF`                                                                       |
 | Runtime settings   | Device-side parameters such as `max_distance`, `trigger_count`, and `min_snr` stay on the radar itself; ESPHome only consumes live frames.                                                                        |
 | Distance filtering | `min_distance` is software-side only: targets closer than this value are suppressed, but a farther target from the same frame may still publish. `max_distance` is device-side only: the device enforces it, so ESPHome publishes whatever the device reports.                  |

@@ -66,6 +66,78 @@ void LD2451Component::set_live_target_direction_text_sensor(uint8_t slot, text_s
   }
 }
 
+void LD2451Component::set_live_target_distance_min_sensor(uint8_t slot, sensor::Sensor *sensor) {
+  if (slot < kLiveTargetSlotCount) {
+    this->live_target_summary_sensors_[slot].distance.min = sensor;
+  }
+}
+
+void LD2451Component::set_live_target_distance_max_sensor(uint8_t slot, sensor::Sensor *sensor) {
+  if (slot < kLiveTargetSlotCount) {
+    this->live_target_summary_sensors_[slot].distance.max = sensor;
+  }
+}
+
+void LD2451Component::set_live_target_distance_avg_sensor(uint8_t slot, sensor::Sensor *sensor) {
+  if (slot < kLiveTargetSlotCount) {
+    this->live_target_summary_sensors_[slot].distance.avg = sensor;
+  }
+}
+
+void LD2451Component::set_live_target_speed_min_sensor(uint8_t slot, sensor::Sensor *sensor) {
+  if (slot < kLiveTargetSlotCount) {
+    this->live_target_summary_sensors_[slot].speed.min = sensor;
+  }
+}
+
+void LD2451Component::set_live_target_speed_max_sensor(uint8_t slot, sensor::Sensor *sensor) {
+  if (slot < kLiveTargetSlotCount) {
+    this->live_target_summary_sensors_[slot].speed.max = sensor;
+  }
+}
+
+void LD2451Component::set_live_target_speed_avg_sensor(uint8_t slot, sensor::Sensor *sensor) {
+  if (slot < kLiveTargetSlotCount) {
+    this->live_target_summary_sensors_[slot].speed.avg = sensor;
+  }
+}
+
+void LD2451Component::set_live_target_speed_mph_min_sensor(uint8_t slot, sensor::Sensor *sensor) {
+  if (slot < kLiveTargetSlotCount) {
+    this->live_target_summary_sensors_[slot].speed_mph.min = sensor;
+  }
+}
+
+void LD2451Component::set_live_target_speed_mph_max_sensor(uint8_t slot, sensor::Sensor *sensor) {
+  if (slot < kLiveTargetSlotCount) {
+    this->live_target_summary_sensors_[slot].speed_mph.max = sensor;
+  }
+}
+
+void LD2451Component::set_live_target_speed_mph_avg_sensor(uint8_t slot, sensor::Sensor *sensor) {
+  if (slot < kLiveTargetSlotCount) {
+    this->live_target_summary_sensors_[slot].speed_mph.avg = sensor;
+  }
+}
+
+void LD2451Component::set_live_target_snr_min_sensor(uint8_t slot, sensor::Sensor *sensor) {
+  if (slot < kLiveTargetSlotCount) {
+    this->live_target_summary_sensors_[slot].snr.min = sensor;
+  }
+}
+
+void LD2451Component::set_live_target_snr_max_sensor(uint8_t slot, sensor::Sensor *sensor) {
+  if (slot < kLiveTargetSlotCount) {
+    this->live_target_summary_sensors_[slot].snr.max = sensor;
+  }
+}
+
+void LD2451Component::set_live_target_snr_avg_sensor(uint8_t slot, sensor::Sensor *sensor) {
+  if (slot < kLiveTargetSlotCount) {
+    this->live_target_summary_sensors_[slot].snr.avg = sensor;
+  }
+}
+
 void LD2451Component::setup() {
   this->rx_buffer_.reserve(256);
   ESP_LOGI(TAG, "Runtime configuration via ESPHome is disabled");
@@ -124,6 +196,18 @@ void LD2451Component::dump_config() {
     LOG_SENSOR("    ", "Speed MPH", this->live_target_sensors_[i].speed_mph);
     LOG_SENSOR("    ", "SNR", this->live_target_sensors_[i].snr);
     LOG_TEXT_SENSOR("    ", "Direction", this->live_target_sensors_[i].direction);
+    LOG_SENSOR("    ", "Distance Min", this->live_target_summary_sensors_[i].distance.min);
+    LOG_SENSOR("    ", "Distance Max", this->live_target_summary_sensors_[i].distance.max);
+    LOG_SENSOR("    ", "Distance Avg", this->live_target_summary_sensors_[i].distance.avg);
+    LOG_SENSOR("    ", "Speed Min", this->live_target_summary_sensors_[i].speed.min);
+    LOG_SENSOR("    ", "Speed Max", this->live_target_summary_sensors_[i].speed.max);
+    LOG_SENSOR("    ", "Speed Avg", this->live_target_summary_sensors_[i].speed.avg);
+    LOG_SENSOR("    ", "Speed MPH Min", this->live_target_summary_sensors_[i].speed_mph.min);
+    LOG_SENSOR("    ", "Speed MPH Max", this->live_target_summary_sensors_[i].speed_mph.max);
+    LOG_SENSOR("    ", "Speed MPH Avg", this->live_target_summary_sensors_[i].speed_mph.avg);
+    LOG_SENSOR("    ", "SNR Min", this->live_target_summary_sensors_[i].snr.min);
+    LOG_SENSOR("    ", "SNR Max", this->live_target_summary_sensors_[i].snr.max);
+    LOG_SENSOR("    ", "SNR Avg", this->live_target_summary_sensors_[i].snr.avg);
   }
 }
 
@@ -319,6 +403,60 @@ void LD2451Component::clear_live_target_slot_(uint8_t slot) {
   }
 }
 
+static void publish_stat_sensor(sensor::Sensor *sensor, float value) {
+  if (sensor != nullptr) {
+    sensor->publish_state(value);
+  }
+}
+
+static void publish_stat_triplet(const LiveTargetStatSensors &sensors, const RollingStat &stats) {
+  const float nan = std::numeric_limits<float>::quiet_NaN();
+  if (!stats.has_samples()) {
+    publish_stat_sensor(sensors.min, nan);
+    publish_stat_sensor(sensors.max, nan);
+    publish_stat_sensor(sensors.avg, nan);
+    return;
+  }
+
+  publish_stat_sensor(sensors.min, stats.min());
+  publish_stat_sensor(sensors.max, stats.max());
+  publish_stat_sensor(sensors.avg, stats.average());
+}
+
+void LD2451Component::publish_live_target_summary_slot_(uint8_t slot) {
+  if (slot >= kLiveTargetSlotCount) {
+    return;
+  }
+
+  const auto &sensors = this->live_target_summary_sensors_[slot];
+  const auto &stats = this->live_target_stats_[slot];
+  publish_stat_triplet(sensors.distance, stats.distance);
+  publish_stat_triplet(sensors.speed, stats.speed);
+  publish_stat_triplet(sensors.speed_mph, stats.speed_mph);
+  publish_stat_triplet(sensors.snr, stats.snr);
+}
+
+void LD2451Component::clear_live_target_summary_slot_(uint8_t slot) {
+  if (slot >= kLiveTargetSlotCount) {
+    return;
+  }
+
+  const auto &sensors = this->live_target_summary_sensors_[slot];
+  const float nan = std::numeric_limits<float>::quiet_NaN();
+  publish_stat_sensor(sensors.distance.min, nan);
+  publish_stat_sensor(sensors.distance.max, nan);
+  publish_stat_sensor(sensors.distance.avg, nan);
+  publish_stat_sensor(sensors.speed.min, nan);
+  publish_stat_sensor(sensors.speed.max, nan);
+  publish_stat_sensor(sensors.speed.avg, nan);
+  publish_stat_sensor(sensors.speed_mph.min, nan);
+  publish_stat_sensor(sensors.speed_mph.max, nan);
+  publish_stat_sensor(sensors.speed_mph.avg, nan);
+  publish_stat_sensor(sensors.snr.min, nan);
+  publish_stat_sensor(sensors.snr.max, nan);
+  publish_stat_sensor(sensors.snr.avg, nan);
+}
+
 static size_t count_present_targets(const std::array<LiveTargetOutput, kLiveTargetSlotCount> &outputs) {
   size_t count = 0;
   for (const auto &output : outputs) {
@@ -396,14 +534,26 @@ void LD2451Component::publish_frame_(uint8_t target_count, const std::vector<Par
 
   if (!has_targets || confident_target_count == 0) {
     for (uint8_t i = 0; i < kLiveTargetSlotCount; i++) {
+      this->live_target_stats_[i].reset();
       this->clear_live_target_slot_(i);
+      this->clear_live_target_summary_slot_(i);
     }
     maybe_publish_idle_reset();
     return;
   }
 
   for (uint8_t i = 0; i < kLiveTargetSlotCount; i++) {
+    if (live_targets[i].present) {
+      this->live_target_stats_[i].ingest(live_targets[i]);
+    } else {
+      this->live_target_stats_[i].reset();
+    }
     this->publish_live_target_slot_(i, live_targets[i]);
+    if (live_targets[i].present) {
+      this->publish_live_target_summary_slot_(i);
+    } else {
+      this->clear_live_target_summary_slot_(i);
+    }
   }
 
   if (this->vehicle_detected_binary_sensor_ != nullptr) {

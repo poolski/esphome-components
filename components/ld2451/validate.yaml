@@ -66,6 +66,30 @@ ld2451:
     name: "LD2451 Target 1 SNR"
   target_1_direction:
     name: "LD2451 Target 1 Direction"
+  target_1_distance_min:
+    name: "LD2451 Target 1 Distance Min"
+  target_1_distance_max:
+    name: "LD2451 Target 1 Distance Max"
+  target_1_distance_avg:
+    name: "LD2451 Target 1 Distance Avg"
+  target_1_speed_min:
+    name: "LD2451 Target 1 Speed Min"
+  target_1_speed_max:
+    name: "LD2451 Target 1 Speed Max"
+  target_1_speed_avg:
+    name: "LD2451 Target 1 Speed Avg"
+  target_1_speed_mph_min:
+    name: "LD2451 Target 1 Speed MPH Min"
+  target_1_speed_mph_max:
+    name: "LD2451 Target 1 Speed MPH Max"
+  target_1_speed_mph_avg:
+    name: "LD2451 Target 1 Speed MPH Avg"
+  target_1_snr_min:
+    name: "LD2451 Target 1 SNR Min"
+  target_1_snr_max:
+    name: "LD2451 Target 1 SNR Max"
+  target_1_snr_avg:
+    name: "LD2451 Target 1 SNR Avg"
   target_2_angle:
     name: "LD2451 Target 2 Angle"
   target_2_x:
@@ -82,6 +106,30 @@ ld2451:
     name: "LD2451 Target 2 SNR"
   target_2_direction:
     name: "LD2451 Target 2 Direction"
+  target_2_distance_min:
+    name: "LD2451 Target 2 Distance Min"
+  target_2_distance_max:
+    name: "LD2451 Target 2 Distance Max"
+  target_2_distance_avg:
+    name: "LD2451 Target 2 Distance Avg"
+  target_2_speed_min:
+    name: "LD2451 Target 2 Speed Min"
+  target_2_speed_max:
+    name: "LD2451 Target 2 Speed Max"
+  target_2_speed_avg:
+    name: "LD2451 Target 2 Speed Avg"
+  target_2_speed_mph_min:
+    name: "LD2451 Target 2 Speed MPH Min"
+  target_2_speed_mph_max:
+    name: "LD2451 Target 2 Speed MPH Max"
+  target_2_speed_mph_avg:
+    name: "LD2451 Target 2 Speed MPH Avg"
+  target_2_snr_min:
+    name: "LD2451 Target 2 SNR Min"
+  target_2_snr_max:
+    name: "LD2451 Target 2 SNR Max"
+  target_2_snr_avg:
+    name: "LD2451 Target 2 SNR Avg"
   target_3_angle:
     name: "LD2451 Target 3 Angle"
   target_3_x:
@@ -98,3 +146,27 @@ ld2451:
     name: "LD2451 Target 3 SNR"
   target_3_direction:
     name: "LD2451 Target 3 Direction"
+  target_3_distance_min:
+    name: "LD2451 Target 3 Distance Min"
+  target_3_distance_max:
+    name: "LD2451 Target 3 Distance Max"
+  target_3_distance_avg:
+    name: "LD2451 Target 3 Distance Avg"
+  target_3_speed_min:
+    name: "LD2451 Target 3 Speed Min"
+  target_3_speed_max:
+    name: "LD2451 Target 3 Speed Max"
+  target_3_speed_avg:
+    name: "LD2451 Target 3 Speed Avg"
+  target_3_speed_mph_min:
+    name: "LD2451 Target 3 Speed MPH Min"
+  target_3_speed_mph_max:
+    name: "LD2451 Target 3 Speed MPH Max"
+  target_3_speed_mph_avg:
+    name: "LD2451 Target 3 Speed MPH Avg"
+  target_3_snr_min:
+    name: "LD2451 Target 3 SNR Min"
+  target_3_snr_max:
+    name: "LD2451 Target 3 SNR Max"
+  target_3_snr_avg:
+    name: "LD2451 Target 3 SNR Avg"

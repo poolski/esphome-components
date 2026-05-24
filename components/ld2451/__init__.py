@@ -18,6 +18,7 @@ CONF_SNR = "snr"
 CONF_DIRECTION = "direction"
 CONF_SPEED_PUBLISH_MAX_ABS_ANGLE = "speed_publish_max_abs_angle"
 LIVE_TARGET_SLOT_NAMES = ("target_1", "target_2", "target_3")
+LIVE_TARGET_STAT_SUFFIXES = ("min", "max", "avg")
 LIVE_TARGET_SENSOR_SPECS = (
     (
         "x",
@@ -85,6 +86,41 @@ LIVE_TARGET_SENSOR_SPECS = (
     ),
     ("direction", lambda: text_sensor.text_sensor_schema(icon="mdi:sign-direction"), "set_live_target_direction_text_sensor"),
 )
+LIVE_TARGET_STAT_SENSOR_SPECS = (
+    (
+        "distance",
+        lambda: sensor.sensor_schema(
+            unit_of_measurement="m",
+            accuracy_decimals=0,
+            device_class=DEVICE_CLASS_DISTANCE,
+            icon="mdi:map-marker-distance",
+        ),
+    ),
+    (
+        "speed",
+        lambda: sensor.sensor_schema(
+            unit_of_measurement="km/h",
+            accuracy_decimals=2,
+            icon="mdi:speedometer",
+        ),
+    ),
+    (
+        "speed_mph",
+        lambda: sensor.sensor_schema(
+            unit_of_measurement="mph",
+            accuracy_decimals=2,
+            icon="mdi:speedometer",
+        ),
+    ),
+    (
+        "snr",
+        lambda: sensor.sensor_schema(
+            unit_of_measurement="dB",
+            accuracy_decimals=0,
+            icon="mdi:signal",
+        ),
+    ),
+)
 ld2451_ns = cg.esphome_ns.namespace("ld2451")
 LD2451Component = ld2451_ns.class_("LD2451Component", cg.Component, uart.UARTDevice)
 cg.add_global(ld2451_ns.using)
@@ -137,6 +173,9 @@ config_schema = {
 for slot_name in LIVE_TARGET_SLOT_NAMES:
     for field_name, schema_factory, _ in LIVE_TARGET_SENSOR_SPECS:
         config_schema[cv.Optional(f"{slot_name}_{field_name}")] = schema_factory()
+    for field_name, schema_factory in LIVE_TARGET_STAT_SENSOR_SPECS:
+        for suffix in LIVE_TARGET_STAT_SUFFIXES:
+            config_schema[cv.Optional(f"{slot_name}_{field_name}_{suffix}")] = schema_factory()
 
 CONFIG_SCHEMA = cv.Schema(config_schema).extend(uart.UART_DEVICE_SCHEMA).extend(cv.COMPONENT_SCHEMA)
 
@@ -203,3 +242,10 @@ async def to_code(config):
                 cg.add(var.set_live_target_snr_sensor(slot_index, slot_sensor))
             elif setter_name == "set_live_target_direction_text_sensor":
                 cg.add(var.set_live_target_direction_text_sensor(slot_index, slot_sensor))
+        for field_name, _ in LIVE_TARGET_STAT_SENSOR_SPECS:
+            for suffix in LIVE_TARGET_STAT_SUFFIXES:
+                key = f"{slot_name}_{field_name}_{suffix}"
+                if key not in config:
+                    continue
+                slot_sensor = await sensor.new_sensor(config[key])
+                cg.add(getattr(var, f"set_live_target_{field_name}_{suffix}_sensor")(slot_index, slot_sensor))

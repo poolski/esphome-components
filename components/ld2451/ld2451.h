@@ -13,6 +13,7 @@
 
 #include "types.h"
 #include "target_publisher.h"
+#include "target_slot_stats.h"
 
 namespace esphome {
 namespace ld2451 {
@@ -28,6 +29,19 @@ struct LiveTargetSensors {
   sensor::Sensor *speed_mph{nullptr};
   sensor::Sensor *snr{nullptr};
   text_sensor::TextSensor *direction{nullptr};
+};
+
+struct LiveTargetStatSensors {
+  sensor::Sensor *min{nullptr};
+  sensor::Sensor *max{nullptr};
+  sensor::Sensor *avg{nullptr};
+};
+
+struct LiveTargetSummarySensors {
+  LiveTargetStatSensors distance;
+  LiveTargetStatSensors speed;
+  LiveTargetStatSensors speed_mph;
+  LiveTargetStatSensors snr;
 };
 
 class LD2451Component : public Component, public uart::UARTDevice {
@@ -56,6 +70,18 @@ class LD2451Component : public Component, public uart::UARTDevice {
   void set_live_target_speed_mph_sensor(uint8_t slot, sensor::Sensor *sensor);
   void set_live_target_snr_sensor(uint8_t slot, sensor::Sensor *sensor);
   void set_live_target_direction_text_sensor(uint8_t slot, text_sensor::TextSensor *sensor);
+  void set_live_target_distance_min_sensor(uint8_t slot, sensor::Sensor *sensor);
+  void set_live_target_distance_max_sensor(uint8_t slot, sensor::Sensor *sensor);
+  void set_live_target_distance_avg_sensor(uint8_t slot, sensor::Sensor *sensor);
+  void set_live_target_speed_min_sensor(uint8_t slot, sensor::Sensor *sensor);
+  void set_live_target_speed_max_sensor(uint8_t slot, sensor::Sensor *sensor);
+  void set_live_target_speed_avg_sensor(uint8_t slot, sensor::Sensor *sensor);
+  void set_live_target_speed_mph_min_sensor(uint8_t slot, sensor::Sensor *sensor);
+  void set_live_target_speed_mph_max_sensor(uint8_t slot, sensor::Sensor *sensor);
+  void set_live_target_speed_mph_avg_sensor(uint8_t slot, sensor::Sensor *sensor);
+  void set_live_target_snr_min_sensor(uint8_t slot, sensor::Sensor *sensor);
+  void set_live_target_snr_max_sensor(uint8_t slot, sensor::Sensor *sensor);
+  void set_live_target_snr_avg_sensor(uint8_t slot, sensor::Sensor *sensor);
 
  protected:
   bool extract_frame_(bool &frame_produced);
@@ -64,6 +90,8 @@ class LD2451Component : public Component, public uart::UARTDevice {
   void publish_frame_(uint8_t target_count, const std::vector<ParsedTarget> &targets, bool alarm, bool has_targets);
   void publish_live_target_slot_(uint8_t slot, const LiveTargetOutput &output);
   void clear_live_target_slot_(uint8_t slot);
+  void publish_live_target_summary_slot_(uint8_t slot);
+  void clear_live_target_summary_slot_(uint8_t slot);
 
   std::vector<uint8_t> rx_buffer_;
   uint32_t last_empty_hint_ms_{0};
@@ -79,6 +107,8 @@ class LD2451Component : public Component, public uart::UARTDevice {
   sensor::Sensor *snr_sensor_{nullptr};
   text_sensor::TextSensor *direction_text_sensor_{nullptr};
   std::array<LiveTargetSensors, kLiveTargetSlotCount> live_target_sensors_{};
+  std::array<LiveTargetSummarySensors, kLiveTargetSlotCount> live_target_summary_sensors_{};
+  std::array<LiveTargetSlotStats, kLiveTargetSlotCount> live_target_stats_{};
   bool detection_active_{false};
   bool idle_published_{false};
   uint32_t last_detection_ms_{0};
