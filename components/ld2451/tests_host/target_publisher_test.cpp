@@ -34,9 +34,13 @@ int main() {
 
   target.snr = 12;
   target.angle = 70;
-  assert(confidence_filter_reason(cfg, target) == std::string("first_angle > speed_publish_max_abs_angle"));
+  assert(confidence_filter_reason(cfg, target) == std::string("70 > 65"));
   const TargetOutput filtered_speed = compute_target_output(cfg, target);
   assert(!filtered_speed.publish);
+
+  target.angle = 12;
+  assert(confidence_filter_reason(cfg, target) == std::string("12 < 18"));
+  assert(!compute_target_output(cfg, target).publish);
 
   std::vector<ParsedTarget> live_targets{};
   ParsedTarget live0{};

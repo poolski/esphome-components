@@ -18,10 +18,10 @@ bool target_is_confident(const SensorSettings &cfg, const ParsedTarget &target) 
 
 std::string confidence_filter_reason(const SensorSettings &cfg, const ParsedTarget &target) {
   if (cfg.speed_publish_max_abs_angle != 0 && std::abs(target.angle) > cfg.speed_publish_max_abs_angle) {
-    return "first_angle > speed_publish_max_abs_angle";
+    return std::to_string(target.angle) + " > " + std::to_string(cfg.speed_publish_max_abs_angle);
   }
   if (cfg.speed_publish_min_snr != 0 && target.snr < cfg.speed_publish_min_snr) {
-    return "first_snr < speed_publish_min_snr";
+    return std::to_string(target.snr) + " < " + std::to_string(cfg.speed_publish_min_snr);
   }
   return {};
 }
