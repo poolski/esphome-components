@@ -10,7 +10,6 @@ int main() {
   cfg.min_distance = 5;
   cfg.max_distance = 10;  // device-side only; does not affect ESPHome publish filter
   cfg.speed_correction = 1.1f;
-  cfg.speed_publish_min_snr = 18;
   cfg.speed_publish_max_abs_angle = 65;
 
   ParsedTarget target{};
@@ -34,13 +33,13 @@ int main() {
 
   target.snr = 12;
   target.angle = 70;
-  assert(confidence_filter_reason(cfg, target) == std::string("70 > 65"));
+  assert(confidence_filter_reason(cfg, target) == std::string("angle: 70 > 65"));
   const TargetOutput filtered_speed = compute_target_output(cfg, target);
   assert(!filtered_speed.publish);
 
   target.angle = 12;
-  assert(confidence_filter_reason(cfg, target) == std::string("12 < 18"));
-  assert(!compute_target_output(cfg, target).publish);
+  assert(confidence_filter_reason(cfg, target).empty());
+  assert(compute_target_output(cfg, target).publish);
 
   std::vector<ParsedTarget> live_targets{};
   ParsedTarget live0{};

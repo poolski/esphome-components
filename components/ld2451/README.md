@@ -87,7 +87,6 @@ ld2451:
     name: "LD2451 SNR"
   direction:
     name: "LD2451 Direction"
-  speed_publish_min_snr: 18
   speed_publish_max_abs_angle: 65
   target_1_angle:
     name: "LD2451 Target 1 Angle"
@@ -129,7 +128,6 @@ It exposes the following sensors:
 | `speed_mph`        | `sensor`        | no       | mph (after `speed_correction`)                                                |
 | `snr`              | `sensor`        | no       | Signal-to-noise ratio (0..255)                                                |
 | `direction`        | `text_sensor`   | no       | `Approaching`, `Moving away`, or `None`                                       |
-| `speed_publish_min_snr` | number    | no       | Minimum SNR required before a target is published at all                      |
 | `speed_publish_max_abs_angle` | number | no    | Maximum absolute angle allowed before a target is published at all           |
 | `target_1_*` / `target_2_*` / `target_3_*` | `sensor` / `text_sensor` | no | Live frame-order target slots with `x`, `y`, `angle`, `distance`, `speed`, `speed_mph`, `snr`, and `direction` |
 
@@ -148,7 +146,7 @@ UART validation is enforced for:
 | No-target behavior | After `no_target_delay`, nearest-target fields reset to `0`, live target slots reset to `NaN` / `None`, and `vehicle_detected` resets to `OFF`                                                                       |
 | Runtime settings   | Device-side parameters such as `max_distance`, `trigger_count`, and `min_snr` stay on the radar itself; ESPHome only consumes live frames.                                                                        |
 | Distance filtering | `min_distance` is software-side only: targets closer than this value are suppressed, but a farther target from the same frame may still publish. `max_distance` is device-side only: the device enforces it, so ESPHome publishes whatever the device reports.                  |
-| Speed filtering    | `speed_publish_min_snr` and `speed_publish_max_abs_angle` are software-side confidence gates for target publication. When a target fails either gate, it is treated as absent and none of its live entity updates are published. |
+| Speed filtering    | `speed_publish_max_abs_angle` is a software-side confidence gate for target publication. When a target fails this gate, it is treated as absent and none of its live entity updates are published. |
 | Speed correction   | `speed_correction` is software-side only: published speed is multiplied by this value; `speed_mph` is derived from the same corrected value                                                               |
 
 ### Home Assistant automation trigger

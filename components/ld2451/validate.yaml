@@ -49,7 +49,6 @@ ld2451:
     name: "LD2451 SNR"
   direction:
     name: "LD2451 Direction"
-  speed_publish_min_snr: 18
   speed_publish_max_abs_angle: 65
   target_1_angle:
     name: "LD2451 Target 1 Angle"
