@@ -20,37 +20,32 @@ bool parse_target_block(const std::vector<uint8_t> &payload, size_t offset, Pars
   return true;
 }
 
-bool parse_payload(const std::vector<uint8_t> &payload, ParsedFrame &frame) {
+// Decodes a data-frame payload into every target it carries, in frame order.
+void parse_payload(const std::vector<uint8_t> &payload, ParsedFrame &frame) {
   if (payload.size() < 2) {
-    return false;
+    return;
   }
 
   frame.target_count = payload[0];
+  frame.alarm = (payload[1] == 0x01);
   if (frame.target_count == 0) {
-    return false;
+    return;
   }
 
   const size_t required_size = 2 + static_cast<size_t>(frame.target_count) * 5;
   if (payload.size() < required_size) {
-    return false;
+    return;
   }
 
-  const bool alarm = (payload[1] == 0x01);
-  bool has_target = false;
+  frame.targets.reserve(frame.target_count);
   for (size_t i = 0; i < frame.target_count; i++) {
     ParsedTarget candidate{};
     if (!parse_target_block(payload, 2 + i * 5, candidate)) {
-      return false;
+      return;
     }
-    if (!has_target || candidate.distance < frame.first_target.distance) {
-      frame.first_target = candidate;
-      has_target = true;
-    }
+    frame.targets.push_back(candidate);
   }
-
-  frame.first_target.alarm = alarm;
-
-  return has_target;
+  frame.has_target = true;
 }
 }  // namespace
 
@@ -62,77 +57,87 @@ void FrameParser::push(const uint8_t *data, size_t len) {
 }
 
 bool FrameParser::pop(ParsedFrame &frame) {
-  if (this->buffer_.size() < 10) {
-    return false;
-  }
-
-  size_t header_pos = this->buffer_.size();
-  for (size_t i = 0; i + 4 <= this->buffer_.size(); i++) {
-    if (this->buffer_[i] == DATA_HEADER[0] && this->buffer_[i + 1] == DATA_HEADER[1] &&
-        this->buffer_[i + 2] == DATA_HEADER[2] && this->buffer_[i + 3] == DATA_HEADER[3]) {
-      header_pos = i;
-      break;
+  // Loop so that config/ACK frames and resync steps are consumed internally, and
+  // the caller only ever sees a complete data frame (or false when more data is
+  // needed). This lets callers drain with `while (pop(frame)) { ... }`.
+  while (true) {
+    if (this->buffer_.size() < 10) {
+      return false;
     }
-  }
 
-  if (header_pos == this->buffer_.size()) {
-    // No data header found. Check if there's a config/ACK frame we can skip wholesale.
+    size_t header_pos = this->buffer_.size();
     for (size_t i = 0; i + 4 <= this->buffer_.size(); i++) {
-      if (this->buffer_[i] == CONFIG_HEADER[0] && this->buffer_[i + 1] == CONFIG_HEADER[1] &&
-          this->buffer_[i + 2] == CONFIG_HEADER[2] && this->buffer_[i + 3] == CONFIG_HEADER[3]) {
-        // Need at least 6 bytes (header + length) to read the payload length.
-        if (i + 6 > this->buffer_.size()) {
-          break;
-        }
-        const uint16_t cfg_payload_len =
-            static_cast<uint16_t>(this->buffer_[i + 4]) | (static_cast<uint16_t>(this->buffer_[i + 5]) << 8);
-        const size_t cfg_frame_len = static_cast<size_t>(cfg_payload_len) + 10;
-        if (i + cfg_frame_len > this->buffer_.size()) {
-          // Incomplete config frame — wait for more data.
-          break;
-        }
-        // Discard everything up to and including the complete config frame.
-        this->buffer_.erase(this->buffer_.begin(), this->buffer_.begin() + static_cast<long>(i + cfg_frame_len));
-        return false;
+      if (this->buffer_[i] == DATA_HEADER[0] && this->buffer_[i + 1] == DATA_HEADER[1] &&
+          this->buffer_[i + 2] == DATA_HEADER[2] && this->buffer_[i + 3] == DATA_HEADER[3]) {
+        header_pos = i;
+        break;
       }
     }
 
-    if (this->buffer_.size() > 3) {
-      this->buffer_.erase(this->buffer_.begin(), this->buffer_.end() - 3);
+    if (header_pos == this->buffer_.size()) {
+      // No data header found. Skip one complete config/ACK frame if present, then
+      // re-scan; otherwise discard everything but a possible partial header tail.
+      size_t config_pos = this->buffer_.size();
+      for (size_t i = 0; i + 4 <= this->buffer_.size(); i++) {
+        if (this->buffer_[i] == CONFIG_HEADER[0] && this->buffer_[i + 1] == CONFIG_HEADER[1] &&
+            this->buffer_[i + 2] == CONFIG_HEADER[2] && this->buffer_[i + 3] == CONFIG_HEADER[3]) {
+          config_pos = i;
+          break;
+        }
+      }
+
+      if (config_pos == this->buffer_.size()) {
+        if (this->buffer_.size() > 3) {
+          this->buffer_.erase(this->buffer_.begin(), this->buffer_.end() - 3);
+        }
+        return false;
+      }
+
+      if (config_pos + 6 > this->buffer_.size()) {
+        return false;  // need more bytes to read the config length
+      }
+      const uint16_t cfg_payload_len = static_cast<uint16_t>(this->buffer_[config_pos + 4]) |
+                                       (static_cast<uint16_t>(this->buffer_[config_pos + 5]) << 8);
+      const size_t cfg_frame_len = static_cast<size_t>(cfg_payload_len) + 10;
+      if (config_pos + cfg_frame_len > this->buffer_.size()) {
+        return false;  // incomplete config frame; wait for more data
+      }
+      this->buffer_.erase(this->buffer_.begin(), this->buffer_.begin() + static_cast<long>(config_pos + cfg_frame_len));
+      continue;  // config frame skipped; re-scan for a data frame
     }
-    return false;
+
+    if (header_pos > 0) {
+      this->buffer_.erase(this->buffer_.begin(), this->buffer_.begin() + static_cast<long>(header_pos));
+    }
+
+    if (this->buffer_.size() < 10) {
+      return false;
+    }
+
+    const uint16_t payload_len =
+        static_cast<uint16_t>(this->buffer_[4]) | (static_cast<uint16_t>(this->buffer_[5]) << 8);
+    const size_t frame_len = static_cast<size_t>(payload_len) + 10;
+    if (this->buffer_.size() < frame_len) {
+      return false;
+    }
+
+    const size_t tail_pos = frame_len - 4;
+    if (this->buffer_[tail_pos] != DATA_TAIL[0] || this->buffer_[tail_pos + 1] != DATA_TAIL[1] ||
+        this->buffer_[tail_pos + 2] != DATA_TAIL[2] || this->buffer_[tail_pos + 3] != DATA_TAIL[3]) {
+      this->buffer_.erase(this->buffer_.begin());  // resync: drop one byte and re-scan
+      continue;
+    }
+
+    std::vector<uint8_t> payload;
+    payload.reserve(payload_len);
+    payload.insert(payload.end(), this->buffer_.begin() + 6, this->buffer_.begin() + 6 + payload_len);
+
+    frame = ParsedFrame{};
+    parse_payload(payload, frame);
+
+    this->buffer_.erase(this->buffer_.begin(), this->buffer_.begin() + static_cast<long>(frame_len));
+    return true;
   }
-
-  if (header_pos > 0) {
-    this->buffer_.erase(this->buffer_.begin(), this->buffer_.begin() + static_cast<long>(header_pos));
-  }
-
-  if (this->buffer_.size() < 10) {
-    return false;
-  }
-
-  const uint16_t payload_len = static_cast<uint16_t>(this->buffer_[4]) | (static_cast<uint16_t>(this->buffer_[5]) << 8);
-  const size_t frame_len = static_cast<size_t>(payload_len) + 10;
-  if (this->buffer_.size() < frame_len) {
-    return false;
-  }
-
-  const size_t tail_pos = frame_len - 4;
-  if (this->buffer_[tail_pos] != DATA_TAIL[0] || this->buffer_[tail_pos + 1] != DATA_TAIL[1] ||
-      this->buffer_[tail_pos + 2] != DATA_TAIL[2] || this->buffer_[tail_pos + 3] != DATA_TAIL[3]) {
-    this->buffer_.erase(this->buffer_.begin());
-    return false;  // Fix 1: tail mismatch is not a successful pop
-  }
-
-  std::vector<uint8_t> payload;
-  payload.reserve(payload_len);
-  payload.insert(payload.end(), this->buffer_.begin() + 6, this->buffer_.begin() + 6 + payload_len);
-
-  frame = ParsedFrame{};
-  frame.has_target = parse_payload(payload, frame);
-
-  this->buffer_.erase(this->buffer_.begin(), this->buffer_.begin() + static_cast<long>(frame_len));
-  return true;
 }
 
 }  // namespace esphome::ld2451

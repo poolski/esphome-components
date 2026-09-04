@@ -11,7 +11,8 @@ namespace esphome::ld2451 {
 struct ParsedFrame {
   uint8_t target_count{0};
   bool has_target{false};
-  ParsedTarget first_target{};
+  bool alarm{false};
+  std::vector<ParsedTarget> targets;
 };
 
 class FrameParser {
