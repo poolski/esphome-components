@@ -33,8 +33,8 @@ struct LiveTargetOutput {
 TargetOutput compute_target_output(const SensorSettings &cfg, const ParsedTarget &target);
 bool target_is_confident(const SensorSettings &cfg, const ParsedTarget &target);
 std::string confidence_filter_reason(const SensorSettings &cfg, const ParsedTarget &target);
-std::array<LiveTargetOutput, kLiveTargetSlotCount> build_live_target_outputs(
-    const SensorSettings &cfg, const std::vector<ParsedTarget> &targets);
+std::array<LiveTargetOutput, kLiveTargetSlotCount> build_live_target_outputs(const SensorSettings &cfg,
+                                                                             const std::vector<ParsedTarget> &targets);
 bool select_nearest_qualifying_target(const SensorSettings &cfg, const std::vector<ParsedTarget> &targets,
                                       ParsedTarget &selected);
 const char *direction_label(uint8_t direction_raw);

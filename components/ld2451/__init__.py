@@ -1,7 +1,16 @@
 import esphome.codegen as cg
 import esphome.config_validation as cv
 from esphome.components import binary_sensor, sensor, text_sensor, uart
-from esphome.const import CONF_ID, DEVICE_CLASS_DISTANCE, DEVICE_CLASS_MOTION
+from esphome.const import (
+    CONF_ID,
+    DEVICE_CLASS_DISTANCE,
+    DEVICE_CLASS_MOTION,
+    DEVICE_CLASS_SPEED,
+    STATE_CLASS_MEASUREMENT,
+    UNIT_DECIBEL,
+    UNIT_KILOMETER_PER_HOUR,
+    UNIT_METER,
+)
 
 CODEOWNERS = ["@poolski"]
 DEPENDENCIES = ["uart"]
@@ -17,13 +26,16 @@ CONF_SPEED_MPH = "speed_mph"
 CONF_SNR = "snr"
 CONF_DIRECTION = "direction"
 CONF_SPEED_PUBLISH_MAX_ABS_ANGLE = "speed_publish_max_abs_angle"
+CONF_MIN_DISTANCE = "min_distance"
+CONF_SPEED_CORRECTION = "speed_correction"
 LIVE_TARGET_SLOT_NAMES = ("target_1", "target_2", "target_3")
 LIVE_TARGET_STAT_SUFFIXES = ("min", "max", "avg")
 LIVE_TARGET_SENSOR_SPECS = (
     (
         "x",
         lambda: sensor.sensor_schema(
-            unit_of_measurement="m",
+            state_class=STATE_CLASS_MEASUREMENT,
+            unit_of_measurement=UNIT_METER,
             accuracy_decimals=0,
             icon="mdi:axis-x-arrow",
         ),
@@ -32,7 +44,8 @@ LIVE_TARGET_SENSOR_SPECS = (
     (
         "y",
         lambda: sensor.sensor_schema(
-            unit_of_measurement="m",
+            state_class=STATE_CLASS_MEASUREMENT,
+            unit_of_measurement=UNIT_METER,
             accuracy_decimals=0,
             icon="mdi:axis-y-arrow",
         ),
@@ -41,6 +54,7 @@ LIVE_TARGET_SENSOR_SPECS = (
     (
         "angle",
         lambda: sensor.sensor_schema(
+            state_class=STATE_CLASS_MEASUREMENT,
             unit_of_measurement="deg",
             accuracy_decimals=0,
             icon="mdi:angle-obtuse",
@@ -50,7 +64,8 @@ LIVE_TARGET_SENSOR_SPECS = (
     (
         "distance",
         lambda: sensor.sensor_schema(
-            unit_of_measurement="m",
+            state_class=STATE_CLASS_MEASUREMENT,
+            unit_of_measurement=UNIT_METER,
             accuracy_decimals=0,
             device_class=DEVICE_CLASS_DISTANCE,
             icon="mdi:map-marker-distance",
@@ -60,8 +75,10 @@ LIVE_TARGET_SENSOR_SPECS = (
     (
         "speed",
         lambda: sensor.sensor_schema(
-            unit_of_measurement="km/h",
+            state_class=STATE_CLASS_MEASUREMENT,
+            unit_of_measurement=UNIT_KILOMETER_PER_HOUR,
             accuracy_decimals=2,
+            device_class=DEVICE_CLASS_SPEED,
             icon="mdi:speedometer",
         ),
         "set_live_target_speed_sensor",
@@ -69,6 +86,7 @@ LIVE_TARGET_SENSOR_SPECS = (
     (
         "speed_mph",
         lambda: sensor.sensor_schema(
+            state_class=STATE_CLASS_MEASUREMENT,
             unit_of_measurement="mph",
             accuracy_decimals=2,
             icon="mdi:speedometer",
@@ -78,19 +96,25 @@ LIVE_TARGET_SENSOR_SPECS = (
     (
         "snr",
         lambda: sensor.sensor_schema(
-            unit_of_measurement="dB",
+            state_class=STATE_CLASS_MEASUREMENT,
+            unit_of_measurement=UNIT_DECIBEL,
             accuracy_decimals=0,
             icon="mdi:signal",
         ),
         "set_live_target_snr_sensor",
     ),
-    ("direction", lambda: text_sensor.text_sensor_schema(icon="mdi:sign-direction"), "set_live_target_direction_text_sensor"),
+    (
+        "direction",
+        lambda: text_sensor.text_sensor_schema(icon="mdi:sign-direction"),
+        "set_live_target_direction_text_sensor",
+    ),
 )
 LIVE_TARGET_STAT_SENSOR_SPECS = (
     (
         "distance",
         lambda: sensor.sensor_schema(
-            unit_of_measurement="m",
+            state_class=STATE_CLASS_MEASUREMENT,
+            unit_of_measurement=UNIT_METER,
             accuracy_decimals=0,
             device_class=DEVICE_CLASS_DISTANCE,
             icon="mdi:map-marker-distance",
@@ -99,14 +123,17 @@ LIVE_TARGET_STAT_SENSOR_SPECS = (
     (
         "speed",
         lambda: sensor.sensor_schema(
-            unit_of_measurement="km/h",
+            state_class=STATE_CLASS_MEASUREMENT,
+            unit_of_measurement=UNIT_KILOMETER_PER_HOUR,
             accuracy_decimals=2,
+            device_class=DEVICE_CLASS_SPEED,
             icon="mdi:speedometer",
         ),
     ),
     (
         "speed_mph",
         lambda: sensor.sensor_schema(
+            state_class=STATE_CLASS_MEASUREMENT,
             unit_of_measurement="mph",
             accuracy_decimals=2,
             icon="mdi:speedometer",
@@ -115,7 +142,8 @@ LIVE_TARGET_STAT_SENSOR_SPECS = (
     (
         "snr",
         lambda: sensor.sensor_schema(
-            unit_of_measurement="dB",
+            state_class=STATE_CLASS_MEASUREMENT,
+            unit_of_measurement=UNIT_DECIBEL,
             accuracy_decimals=0,
             icon="mdi:signal",
         ),
@@ -131,6 +159,7 @@ config_schema = {
         "runtime configuration via ESPHome is disabled; configure the LD2451 from the mobile app"
     ),
     cv.Optional(CONF_TARGET_COUNT): sensor.sensor_schema(
+        state_class=STATE_CLASS_MEASUREMENT,
         unit_of_measurement="targets",
         accuracy_decimals=0,
         icon="mdi:counter",
@@ -140,44 +169,58 @@ config_schema = {
         icon="mdi:car",
     ),
     cv.Optional(CONF_ANGLE): sensor.sensor_schema(
+        state_class=STATE_CLASS_MEASUREMENT,
         unit_of_measurement="deg",
         accuracy_decimals=0,
         icon="mdi:angle-obtuse",
     ),
     cv.Optional(CONF_DISTANCE): sensor.sensor_schema(
-        unit_of_measurement="m",
+        state_class=STATE_CLASS_MEASUREMENT,
+        unit_of_measurement=UNIT_METER,
         accuracy_decimals=0,
         device_class=DEVICE_CLASS_DISTANCE,
         icon="mdi:map-marker-distance",
     ),
     cv.Optional(CONF_SPEED): sensor.sensor_schema(
-        unit_of_measurement="km/h",
+        state_class=STATE_CLASS_MEASUREMENT,
+        unit_of_measurement=UNIT_KILOMETER_PER_HOUR,
         accuracy_decimals=2,
+        device_class=DEVICE_CLASS_SPEED,
         icon="mdi:speedometer",
     ),
     cv.Optional(CONF_SPEED_MPH): sensor.sensor_schema(
+        state_class=STATE_CLASS_MEASUREMENT,
         unit_of_measurement="mph",
         accuracy_decimals=2,
         icon="mdi:speedometer",
     ),
     cv.Optional(CONF_SNR): sensor.sensor_schema(
-        unit_of_measurement="dB",
+        state_class=STATE_CLASS_MEASUREMENT,
+        unit_of_measurement=UNIT_DECIBEL,
         accuracy_decimals=0,
         icon="mdi:signal",
     ),
     cv.Optional(CONF_DIRECTION): text_sensor.text_sensor_schema(
         icon="mdi:sign-direction",
     ),
-    cv.Optional(CONF_SPEED_PUBLISH_MAX_ABS_ANGLE, default=0): cv.int_range(min=0, max=90),
+    cv.Optional(CONF_SPEED_PUBLISH_MAX_ABS_ANGLE, default=0): cv.int_range(
+        min=0, max=90
+    ),
+    cv.Optional(CONF_MIN_DISTANCE, default=0): cv.int_range(min=0, max=100),
+    cv.Optional(CONF_SPEED_CORRECTION, default=1.0): cv.positive_float,
 }
 for slot_name in LIVE_TARGET_SLOT_NAMES:
     for field_name, schema_factory, _ in LIVE_TARGET_SENSOR_SPECS:
         config_schema[cv.Optional(f"{slot_name}_{field_name}")] = schema_factory()
     for field_name, schema_factory in LIVE_TARGET_STAT_SENSOR_SPECS:
         for suffix in LIVE_TARGET_STAT_SUFFIXES:
-            config_schema[cv.Optional(f"{slot_name}_{field_name}_{suffix}")] = schema_factory()
+            config_schema[cv.Optional(f"{slot_name}_{field_name}_{suffix}")] = (
+                schema_factory()
+            )
 
-CONFIG_SCHEMA = cv.Schema(config_schema).extend(uart.UART_DEVICE_SCHEMA).extend(cv.COMPONENT_SCHEMA)
+CONFIG_SCHEMA = (
+    cv.Schema(config_schema).extend(uart.UART_DEVICE_SCHEMA).extend(cv.COMPONENT_SCHEMA)
+)
 
 FINAL_VALIDATE_SCHEMA = uart.final_validate_device_schema(
     "ld2451",
@@ -216,7 +259,11 @@ async def to_code(config):
     if CONF_DIRECTION in config:
         ts = await text_sensor.new_text_sensor(config[CONF_DIRECTION])
         cg.add(var.set_direction_text_sensor(ts))
-    cg.add(var.set_speed_publish_max_abs_angle(config[CONF_SPEED_PUBLISH_MAX_ABS_ANGLE]))
+    cg.add(
+        var.set_speed_publish_max_abs_angle(config[CONF_SPEED_PUBLISH_MAX_ABS_ANGLE])
+    )
+    cg.add(var.set_min_distance(config[CONF_MIN_DISTANCE]))
+    cg.add(var.set_speed_correction(config[CONF_SPEED_CORRECTION]))
     for slot_index, slot_name in enumerate(LIVE_TARGET_SLOT_NAMES):
         for field_name, _, setter_name in LIVE_TARGET_SENSOR_SPECS:
             key = f"{slot_name}_{field_name}"
@@ -241,11 +288,17 @@ async def to_code(config):
             elif setter_name == "set_live_target_snr_sensor":
                 cg.add(var.set_live_target_snr_sensor(slot_index, slot_sensor))
             elif setter_name == "set_live_target_direction_text_sensor":
-                cg.add(var.set_live_target_direction_text_sensor(slot_index, slot_sensor))
+                cg.add(
+                    var.set_live_target_direction_text_sensor(slot_index, slot_sensor)
+                )
         for field_name, _ in LIVE_TARGET_STAT_SENSOR_SPECS:
             for suffix in LIVE_TARGET_STAT_SUFFIXES:
                 key = f"{slot_name}_{field_name}_{suffix}"
                 if key not in config:
                     continue
                 slot_sensor = await sensor.new_sensor(config[key])
-                cg.add(getattr(var, f"set_live_target_{field_name}_{suffix}_sensor")(slot_index, slot_sensor))
+                cg.add(
+                    getattr(var, f"set_live_target_{field_name}_{suffix}_sensor")(
+                        slot_index, slot_sensor
+                    )
+                )

@@ -12,6 +12,7 @@
 #include "esphome/core/component.h"
 
 #include "types.h"
+#include "frame_parser.h"
 #include "target_publisher.h"
 #include "target_slot_stats.h"
 
@@ -56,6 +57,8 @@ class LD2451Component : public Component, public uart::UARTDevice {
     this->vehicle_detected_binary_sensor_ = sensor;
   }
   void set_speed_publish_max_abs_angle(uint8_t value) { this->desired_.speed_publish_max_abs_angle = value; }
+  void set_min_distance(uint8_t value) { this->desired_.min_distance = value; }
+  void set_speed_correction(float value) { this->desired_.speed_correction = value; }
   void set_angle_sensor(sensor::Sensor *sensor) { this->angle_sensor_ = sensor; }
   void set_distance_sensor(sensor::Sensor *sensor) { this->distance_sensor_ = sensor; }
   void set_speed_sensor(sensor::Sensor *sensor) { this->speed_sensor_ = sensor; }
@@ -84,16 +87,14 @@ class LD2451Component : public Component, public uart::UARTDevice {
   void set_live_target_snr_avg_sensor(uint8_t slot, sensor::Sensor *sensor);
 
  protected:
-  bool extract_frame_(bool &frame_produced);
-  bool parse_payload_(const std::vector<uint8_t> &payload, uint8_t &target_count, bool &alarm,
-                      std::vector<ParsedTarget> &targets);
+  void handle_frame_(const ParsedFrame &frame);
   void publish_frame_(uint8_t target_count, const std::vector<ParsedTarget> &targets, bool alarm, bool has_targets);
   void publish_live_target_slot_(uint8_t slot, const LiveTargetOutput &output);
   void clear_live_target_slot_(uint8_t slot);
   void publish_live_target_summary_slot_(uint8_t slot);
   void clear_live_target_summary_slot_(uint8_t slot);
 
-  std::vector<uint8_t> rx_buffer_;
+  FrameParser frame_parser_;
   uint32_t last_empty_hint_ms_{0};
   uint32_t last_rx_activity_log_ms_{0};
   SensorSettings desired_{};

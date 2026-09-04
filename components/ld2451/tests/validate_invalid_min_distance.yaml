@@ -32,5 +32,4 @@ uart:
 ld2451:
   id: radar
   uart_id: uart_bus
-  max_distance: 10
-  min_distance: 20
+  min_distance: 200

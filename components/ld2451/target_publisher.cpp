@@ -33,8 +33,8 @@ TargetOutput compute_target_output(const SensorSettings &cfg, const ParsedTarget
   return out;
 }
 
-std::array<LiveTargetOutput, kLiveTargetSlotCount> build_live_target_outputs(
-    const SensorSettings &cfg, const std::vector<ParsedTarget> &targets) {
+std::array<LiveTargetOutput, kLiveTargetSlotCount> build_live_target_outputs(const SensorSettings &cfg,
+                                                                             const std::vector<ParsedTarget> &targets) {
   std::array<LiveTargetOutput, kLiveTargetSlotCount> out{};
   for (size_t i = 0; i < out.size() && i < targets.size(); i++) {
     if (!target_is_confident(cfg, targets[i])) {
