@@ -6,6 +6,7 @@ from esphome.const import (
     DEVICE_CLASS_DISTANCE,
     DEVICE_CLASS_MOTION,
     DEVICE_CLASS_SPEED,
+    STATE_CLASS_MEASUREMENT,
     UNIT_DECIBEL,
     UNIT_KILOMETER_PER_HOUR,
     UNIT_METER,
@@ -33,6 +34,7 @@ LIVE_TARGET_SENSOR_SPECS = (
     (
         "x",
         lambda: sensor.sensor_schema(
+            state_class=STATE_CLASS_MEASUREMENT,
             unit_of_measurement=UNIT_METER,
             accuracy_decimals=0,
             icon="mdi:axis-x-arrow",
@@ -42,6 +44,7 @@ LIVE_TARGET_SENSOR_SPECS = (
     (
         "y",
         lambda: sensor.sensor_schema(
+            state_class=STATE_CLASS_MEASUREMENT,
             unit_of_measurement=UNIT_METER,
             accuracy_decimals=0,
             icon="mdi:axis-y-arrow",
@@ -51,6 +54,7 @@ LIVE_TARGET_SENSOR_SPECS = (
     (
         "angle",
         lambda: sensor.sensor_schema(
+            state_class=STATE_CLASS_MEASUREMENT,
             unit_of_measurement="deg",
             accuracy_decimals=0,
             icon="mdi:angle-obtuse",
@@ -60,6 +64,7 @@ LIVE_TARGET_SENSOR_SPECS = (
     (
         "distance",
         lambda: sensor.sensor_schema(
+            state_class=STATE_CLASS_MEASUREMENT,
             unit_of_measurement=UNIT_METER,
             accuracy_decimals=0,
             device_class=DEVICE_CLASS_DISTANCE,
@@ -70,6 +75,7 @@ LIVE_TARGET_SENSOR_SPECS = (
     (
         "speed",
         lambda: sensor.sensor_schema(
+            state_class=STATE_CLASS_MEASUREMENT,
             unit_of_measurement=UNIT_KILOMETER_PER_HOUR,
             accuracy_decimals=2,
             device_class=DEVICE_CLASS_SPEED,
@@ -80,6 +86,7 @@ LIVE_TARGET_SENSOR_SPECS = (
     (
         "speed_mph",
         lambda: sensor.sensor_schema(
+            state_class=STATE_CLASS_MEASUREMENT,
             unit_of_measurement="mph",
             accuracy_decimals=2,
             icon="mdi:speedometer",
@@ -89,6 +96,7 @@ LIVE_TARGET_SENSOR_SPECS = (
     (
         "snr",
         lambda: sensor.sensor_schema(
+            state_class=STATE_CLASS_MEASUREMENT,
             unit_of_measurement=UNIT_DECIBEL,
             accuracy_decimals=0,
             icon="mdi:signal",
@@ -105,6 +113,7 @@ LIVE_TARGET_STAT_SENSOR_SPECS = (
     (
         "distance",
         lambda: sensor.sensor_schema(
+            state_class=STATE_CLASS_MEASUREMENT,
             unit_of_measurement=UNIT_METER,
             accuracy_decimals=0,
             device_class=DEVICE_CLASS_DISTANCE,
@@ -114,6 +123,7 @@ LIVE_TARGET_STAT_SENSOR_SPECS = (
     (
         "speed",
         lambda: sensor.sensor_schema(
+            state_class=STATE_CLASS_MEASUREMENT,
             unit_of_measurement=UNIT_KILOMETER_PER_HOUR,
             accuracy_decimals=2,
             device_class=DEVICE_CLASS_SPEED,
@@ -123,6 +133,7 @@ LIVE_TARGET_STAT_SENSOR_SPECS = (
     (
         "speed_mph",
         lambda: sensor.sensor_schema(
+            state_class=STATE_CLASS_MEASUREMENT,
             unit_of_measurement="mph",
             accuracy_decimals=2,
             icon="mdi:speedometer",
@@ -131,6 +142,7 @@ LIVE_TARGET_STAT_SENSOR_SPECS = (
     (
         "snr",
         lambda: sensor.sensor_schema(
+            state_class=STATE_CLASS_MEASUREMENT,
             unit_of_measurement=UNIT_DECIBEL,
             accuracy_decimals=0,
             icon="mdi:signal",
@@ -147,6 +159,7 @@ config_schema = {
         "runtime configuration via ESPHome is disabled; configure the LD2451 from the mobile app"
     ),
     cv.Optional(CONF_TARGET_COUNT): sensor.sensor_schema(
+        state_class=STATE_CLASS_MEASUREMENT,
         unit_of_measurement="targets",
         accuracy_decimals=0,
         icon="mdi:counter",
@@ -156,28 +169,33 @@ config_schema = {
         icon="mdi:car",
     ),
     cv.Optional(CONF_ANGLE): sensor.sensor_schema(
+        state_class=STATE_CLASS_MEASUREMENT,
         unit_of_measurement="deg",
         accuracy_decimals=0,
         icon="mdi:angle-obtuse",
     ),
     cv.Optional(CONF_DISTANCE): sensor.sensor_schema(
+        state_class=STATE_CLASS_MEASUREMENT,
         unit_of_measurement=UNIT_METER,
         accuracy_decimals=0,
         device_class=DEVICE_CLASS_DISTANCE,
         icon="mdi:map-marker-distance",
     ),
     cv.Optional(CONF_SPEED): sensor.sensor_schema(
+        state_class=STATE_CLASS_MEASUREMENT,
         unit_of_measurement=UNIT_KILOMETER_PER_HOUR,
         accuracy_decimals=2,
         device_class=DEVICE_CLASS_SPEED,
         icon="mdi:speedometer",
     ),
     cv.Optional(CONF_SPEED_MPH): sensor.sensor_schema(
+        state_class=STATE_CLASS_MEASUREMENT,
         unit_of_measurement="mph",
         accuracy_decimals=2,
         icon="mdi:speedometer",
     ),
     cv.Optional(CONF_SNR): sensor.sensor_schema(
+        state_class=STATE_CLASS_MEASUREMENT,
         unit_of_measurement=UNIT_DECIBEL,
         accuracy_decimals=0,
         icon="mdi:signal",
