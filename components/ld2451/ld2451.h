@@ -56,6 +56,8 @@ class LD2451Component : public Component, public uart::UARTDevice {
     this->vehicle_detected_binary_sensor_ = sensor;
   }
   void set_speed_publish_max_abs_angle(uint8_t value) { this->desired_.speed_publish_max_abs_angle = value; }
+  void set_min_distance(uint8_t value) { this->desired_.min_distance = value; }
+  void set_speed_correction(float value) { this->desired_.speed_correction = value; }
   void set_angle_sensor(sensor::Sensor *sensor) { this->angle_sensor_ = sensor; }
   void set_distance_sensor(sensor::Sensor *sensor) { this->distance_sensor_ = sensor; }
   void set_speed_sensor(sensor::Sensor *sensor) { this->speed_sensor_ = sensor; }

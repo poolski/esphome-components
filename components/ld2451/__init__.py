@@ -25,6 +25,8 @@ CONF_SPEED_MPH = "speed_mph"
 CONF_SNR = "snr"
 CONF_DIRECTION = "direction"
 CONF_SPEED_PUBLISH_MAX_ABS_ANGLE = "speed_publish_max_abs_angle"
+CONF_MIN_DISTANCE = "min_distance"
+CONF_SPEED_CORRECTION = "speed_correction"
 LIVE_TARGET_SLOT_NAMES = ("target_1", "target_2", "target_3")
 LIVE_TARGET_STAT_SUFFIXES = ("min", "max", "avg")
 LIVE_TARGET_SENSOR_SPECS = (
@@ -186,6 +188,8 @@ config_schema = {
     cv.Optional(CONF_SPEED_PUBLISH_MAX_ABS_ANGLE, default=0): cv.int_range(
         min=0, max=90
     ),
+    cv.Optional(CONF_MIN_DISTANCE, default=0): cv.int_range(min=0, max=100),
+    cv.Optional(CONF_SPEED_CORRECTION, default=1.0): cv.positive_float,
 }
 for slot_name in LIVE_TARGET_SLOT_NAMES:
     for field_name, schema_factory, _ in LIVE_TARGET_SENSOR_SPECS:
@@ -240,6 +244,8 @@ async def to_code(config):
     cg.add(
         var.set_speed_publish_max_abs_angle(config[CONF_SPEED_PUBLISH_MAX_ABS_ANGLE])
     )
+    cg.add(var.set_min_distance(config[CONF_MIN_DISTANCE]))
+    cg.add(var.set_speed_correction(config[CONF_SPEED_CORRECTION]))
     for slot_index, slot_name in enumerate(LIVE_TARGET_SLOT_NAMES):
         for field_name, _, setter_name in LIVE_TARGET_SENSOR_SPECS:
             key = f"{slot_name}_{field_name}"

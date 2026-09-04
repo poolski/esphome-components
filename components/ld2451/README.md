@@ -135,10 +135,15 @@ ld2451:
 
 `ld2451:` supports:
 
-| Key       | Type         | Required | Notes |
-| --------- | ------------ | -------- | ----- |
-| `id`      | component ID | yes      | -     |
-| `uart_id` | UART ID      | yes      | -     |
+| Key                           | Type              | Required | Default | Notes                                                                                                   |
+| ----------------------------- | ----------------- | -------- | ------- | ------------------------------------------------------------------------------------------------------- |
+| `id`                          | component ID      | yes      | -       | -                                                                                                       |
+| `uart_id`                     | UART ID           | yes      | -       | -                                                                                                       |
+| `min_distance`                | int (0..100 m)    | no       | `0`     | Software filter: targets closer than this are not published. `0` disables it.                           |
+| `speed_publish_max_abs_angle` | int (0..90 deg)   | no       | `0`     | Software confidence gate: a target beyond this absolute angle is treated as absent. `0` disables it.    |
+| `speed_correction`            | float multiplier  | no       | `1.0`   | Applied to the published `speed` (and `speed_mph`, which derives from the same corrected value).        |
+
+These are all software-side filters applied inside ESPHome. Device-stored settings such as `max_distance`, `trigger_count`, and `min_snr` are not configurable here; set those from the LD2451 mobile app.
 
 It exposes the following sensors:
 
@@ -152,7 +157,6 @@ It exposes the following sensors:
 | `speed_mph`        | `sensor`        | no       | mph (after `speed_correction`)                                                |
 | `snr`              | `sensor`        | no       | Signal-to-noise ratio (0..255)                                                |
 | `direction`        | `text_sensor`   | no       | `Approaching`, `Moving away`, or `None`                                       |
-| `speed_publish_max_abs_angle` | number | no    | Maximum absolute angle allowed before a target is published at all           |
 | `target_1_*` / `target_2_*` / `target_3_*` | `sensor` / `text_sensor` | no | Live frame-order target slots with `x`, `y`, `angle`, `distance`, `speed`, `speed_mph`, `snr`, and `direction` |
 | `target_[1-3]_{distance,speed,speed_mph,snr}_{min,max,avg}` | `sensor` | no | Slot-local rolling summaries; reset to `NaN` when the slot disappears |
 
