@@ -14,7 +14,7 @@ static const char *const TAG = "ld2451";
 static const uint8_t DATA_HEADER[] = {0xF4, 0xF3, 0xF2, 0xF1};
 static const uint8_t DATA_TAIL[] = {0xF8, 0xF7, 0xF6, 0xF5};
 static const uint8_t CONFIG_HEADER[] = {0xFD, 0xFC, 0xFB, 0xFA};
-static const uint8_t CONFIG_TAIL[]   = {0x04, 0x03, 0x02, 0x01};
+static const uint8_t CONFIG_TAIL[] = {0x04, 0x03, 0x02, 0x01};
 
 static size_t count_present_targets(const std::array<LiveTargetOutput, kLiveTargetSlotCount> &outputs);
 
@@ -175,8 +175,7 @@ void LD2451Component::dump_config() {
   ESP_LOGCONFIG(TAG, "LD2451:");
   ESP_LOGCONFIG(TAG, "  Runtime config:      disabled in ESPHome");
   ESP_LOGCONFIG(TAG, "  Min Distance:        %u m (software filter)", this->desired_.min_distance);
-  ESP_LOGCONFIG(TAG, "  Speed Publish Max Angle: %u deg (software filter)",
-                this->desired_.speed_publish_max_abs_angle);
+  ESP_LOGCONFIG(TAG, "  Speed Publish Max Angle: %u deg (software filter)", this->desired_.speed_publish_max_abs_angle);
   ESP_LOGCONFIG(TAG, "  Speed Correction:    %.2fx (software only)", this->desired_.speed_correction);
   LOG_SENSOR("  ", "Target Count", this->target_count_sensor_);
   LOG_BINARY_SENSOR("  ", "Vehicle Detected", this->vehicle_detected_binary_sensor_);
@@ -271,7 +270,8 @@ bool LD2451Component::extract_frame_(bool &frame_produced) {
     return false;
   }
 
-  const uint16_t payload_len = static_cast<uint16_t>(this->rx_buffer_[4]) | (static_cast<uint16_t>(this->rx_buffer_[5]) << 8);
+  const uint16_t payload_len =
+      static_cast<uint16_t>(this->rx_buffer_[4]) | (static_cast<uint16_t>(this->rx_buffer_[5]) << 8);
   const size_t frame_len = static_cast<size_t>(payload_len) + 10;
   if (this->rx_buffer_.size() < frame_len) {
     return false;
@@ -324,7 +324,8 @@ bool LD2451Component::extract_frame_(bool &frame_produced) {
     }
     if (first_present != nullptr) {
       ESP_LOGD(TAG,
-               "Parsed telemetry: targets=%u first_angle=%ddeg first_dist=%um first_speed=%ukm/h first_dir_raw=0x%02X first_dir=%s first_snr=%u",
+               "Parsed telemetry: targets=%u first_angle=%ddeg first_dist=%um first_speed=%ukm/h first_dir_raw=0x%02X "
+               "first_dir=%s first_snr=%u",
                target_count, first_present->target.angle, first_present->target.distance, first_present->target.speed,
                first_present->target.direction, direction_label(first_present->target.direction),
                first_present->target.snr);
@@ -565,8 +566,8 @@ void LD2451Component::publish_frame_(uint8_t target_count, const std::vector<Par
   this->idle_published_ = false;
 
   if (targets.size() > kLiveTargetSlotCount) {
-    ESP_LOGD(TAG, "Frame contains %u targets; exposing first %u live slots",
-             static_cast<unsigned int>(targets.size()), static_cast<unsigned int>(kLiveTargetSlotCount));
+    ESP_LOGD(TAG, "Frame contains %u targets; exposing first %u live slots", static_cast<unsigned int>(targets.size()),
+             static_cast<unsigned int>(kLiveTargetSlotCount));
   }
 
   ParsedTarget nearest_target{};
@@ -603,7 +604,8 @@ void LD2451Component::publish_frame_(uint8_t target_count, const std::vector<Par
   }
 
   if (confident_target_count < target_count) {
-    ESP_LOGD(TAG, "Filtered %u low-confidence targets from frame", static_cast<unsigned int>(target_count - confident_target_count));
+    ESP_LOGD(TAG, "Filtered %u low-confidence targets from frame",
+             static_cast<unsigned int>(target_count - confident_target_count));
   }
 }
 
